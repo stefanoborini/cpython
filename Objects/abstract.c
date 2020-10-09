@@ -202,7 +202,7 @@ PyObject_GetItem(PyObject *o, PyObject *key)
 }
 
 PyObject *
-PyObject_GetItemWithKeywordArgs(PyObject *o, PyObject *key, PyObject *kwargs)
+PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
 {
     PyMappingMethods *m;
     PySequenceMethods *ms;
@@ -288,7 +288,7 @@ PyObject_SetItem(PyObject *o, PyObject *key, PyObject *value)
 }
 
 int
-PyObject_SetItemWithKeywordArgs(PyObject *o, PyObject *key, PyObject *value, PyObject *kwargs)
+PyObject_SetItemWithKeywords(PyObject *o, PyObject *key, PyObject *value, PyObject *kwargs)
 {
     PyMappingMethods *m;
 
@@ -353,7 +353,7 @@ PyObject_DelItem(PyObject *o, PyObject *key)
 }
 
 int
-PyObject_DelItemWithKeywordArgs(PyObject *o, PyObject *key, PyObject *kwargs)
+PyObject_DelItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
 {
     PyMappingMethods *m;
 
