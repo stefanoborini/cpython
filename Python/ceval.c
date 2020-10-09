@@ -1747,6 +1747,20 @@ main_loop:
             DISPATCH();
         }
 
+        case TARGET(BINARY_SUBSCR_KW): {
+            PyObject *sub = POP();
+            PyObject *container = POP();
+            PyObject *kwargs = TOP();
+            PyObject *res = PyObject_GetItemWithKeywordArgs(container, sub, kwargs);
+            Py_DECREF(kwargs);
+            Py_DECREF(container);
+            Py_DECREF(sub);
+            SET_TOP(res);
+            if (res == NULL)
+                goto error;
+            DISPATCH();
+        }
+
         case TARGET(BINARY_LSHIFT): {
             PyObject *right = POP();
             PyObject *left = TOP();
@@ -2010,6 +2024,23 @@ main_loop:
             DISPATCH();
         }
 
+        case TARGET(STORE_SUBSCR_KW): {
+            PyObject *sub = TOP();
+            PyObject *container = SECOND();
+            PyObject *v = THIRD();
+            PyObject *kwargs = FOURTH();
+            int err;
+            STACK_SHRINK(4);
+            err = PyObject_SetItemWithKeywordArgs(container, sub, v, kwargs);
+            Py_DECREF(kwargs);
+            Py_DECREF(v);
+            Py_DECREF(container);
+            Py_DECREF(sub);
+            if (err != 0)
+                goto error;
+            DISPATCH();
+        }
+
         case TARGET(DELETE_SUBSCR): {
             PyObject *sub = TOP();
             PyObject *container = SECOND();
@@ -2023,6 +2054,23 @@ main_loop:
                 goto error;
             DISPATCH();
         }
+
+        case TARGET(DELETE_SUBSCR_KW): {
+            PyObject *sub = TOP();
+            PyObject *container = SECOND();
+            PyObject *kwargs = THIRD();
+            int err;
+            STACK_SHRINK(3);
+            /* del container[sub] */
+            err = PyObject_DelItemWithKeywordArgs(container, sub, kwargs);
+            Py_DECREF(kwargs);
+            Py_DECREF(container);
+            Py_DECREF(sub);
+            if (err != 0)
+                goto error;
+            DISPATCH();
+        }
+
 
         case TARGET(PRINT_EXPR): {
             _Py_IDENTIFIER(displayhook);
