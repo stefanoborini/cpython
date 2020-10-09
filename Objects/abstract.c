@@ -201,6 +201,60 @@ PyObject_GetItem(PyObject *o, PyObject *key)
     return type_error("'%.200s' object is not subscriptable", o);
 }
 
+PyObject *
+PyObject_GetItemWithKeywordArgs(PyObject *o, PyObject *key, PyObject *kwargs)
+{
+    PyMappingMethods *m;
+    PySequenceMethods *ms;
+
+    if (o == NULL || key == NULL) {
+        return null_error();
+    }
+
+    m = Py_TYPE(o)->tp_as_mapping;
+    if (m && m->mp_subscript) {
+        PyObject *item = m->mp_subscript(o, key);
+        assert((item != NULL) ^ (PyErr_Occurred() != NULL));
+        return item;
+    }
+
+    ms = Py_TYPE(o)->tp_as_sequence;
+    if (ms && ms->sq_item) {
+        if (_PyIndex_Check(key)) {
+            Py_ssize_t key_value;
+            key_value = PyNumber_AsSsize_t(key, PyExc_IndexError);
+            if (key_value == -1 && PyErr_Occurred())
+                return NULL;
+            return PySequence_GetItem(o, key_value);
+        }
+        else {
+            return type_error("sequence index must "
+                              "be integer, not '%.200s'", key);
+        }
+    }
+
+    if (PyType_Check(o)) {
+        PyObject *meth, *result;
+        _Py_IDENTIFIER(__class_getitem__);
+
+        // Special case type[int], but disallow other types so str[int] fails
+        if ((PyTypeObject*)o == &PyType_Type) {
+            return Py_GenericAlias(o, key);
+        }
+
+        if (_PyObject_LookupAttrId(o, &PyId___class_getitem__, &meth) < 0) {
+            return NULL;
+        }
+        if (meth) {
+            result = PyObject_CallOneArg(meth, key);
+            Py_DECREF(meth);
+            return result;
+        }
+    }
+
+    return type_error("'%.200s' object is not subscriptable", o);
+}
+
 int
 PyObject_SetItem(PyObject *o, PyObject *key, PyObject *value)
 {
@@ -234,7 +288,72 @@ PyObject_SetItem(PyObject *o, PyObject *key, PyObject *value)
 }
 
 int
+PyObject_SetItemWithKeywordArgs(PyObject *o, PyObject *key, PyObject *value, PyObject *kwargs)
+{
+    PyMappingMethods *m;
+
+    if (o == NULL || key == NULL || value == NULL) {
+        null_error();
+        return -1;
+    }
+    m = Py_TYPE(o)->tp_as_mapping;
+    if (m && m->mp_ass_subscript)
+        return m->mp_ass_subscript(o, key, value);
+
+    if (Py_TYPE(o)->tp_as_sequence) {
+        if (_PyIndex_Check(key)) {
+            Py_ssize_t key_value;
+            key_value = PyNumber_AsSsize_t(key, PyExc_IndexError);
+            if (key_value == -1 && PyErr_Occurred())
+                return -1;
+            return PySequence_SetItem(o, key_value, value);
+        }
+        else if (Py_TYPE(o)->tp_as_sequence->sq_ass_item) {
+            type_error("sequence index must be "
+                       "integer, not '%.200s'", key);
+            return -1;
+        }
+    }
+
+    type_error("'%.200s' object does not support item assignment", o);
+    return -1;
+}
+
+
+int
 PyObject_DelItem(PyObject *o, PyObject *key)
+{
+    PyMappingMethods *m;
+
+    if (o == NULL || key == NULL) {
+        null_error();
+        return -1;
+    }
+    m = Py_TYPE(o)->tp_as_mapping;
+    if (m && m->mp_ass_subscript)
+        return m->mp_ass_subscript(o, key, (PyObject*)NULL);
+
+    if (Py_TYPE(o)->tp_as_sequence) {
+        if (_PyIndex_Check(key)) {
+            Py_ssize_t key_value;
+            key_value = PyNumber_AsSsize_t(key, PyExc_IndexError);
+            if (key_value == -1 && PyErr_Occurred())
+                return -1;
+            return PySequence_DelItem(o, key_value);
+        }
+        else if (Py_TYPE(o)->tp_as_sequence->sq_ass_item) {
+            type_error("sequence index must be "
+                       "integer, not '%.200s'", key);
+            return -1;
+        }
+    }
+
+    type_error("'%.200s' object does not support item deletion", o);
+    return -1;
+}
+
+int
+PyObject_DelItemWithKeywordArgs(PyObject *o, PyObject *key, PyObject *kwargs)
 {
     PyMappingMethods *m;
 
