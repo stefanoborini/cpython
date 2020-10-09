@@ -1751,7 +1751,7 @@ main_loop:
             PyObject *sub = POP();
             PyObject *container = POP();
             PyObject *kwargs = TOP();
-            PyObject *res = PyObject_GetItemWithKeywordArgs(container, sub, kwargs);
+            PyObject *res = PyObject_GetItemWithKeywords(container, sub, kwargs);
             Py_DECREF(kwargs);
             Py_DECREF(container);
             Py_DECREF(sub);
@@ -2031,7 +2031,7 @@ main_loop:
             PyObject *kwargs = FOURTH();
             int err;
             STACK_SHRINK(4);
-            err = PyObject_SetItemWithKeywordArgs(container, sub, v, kwargs);
+            err = PyObject_SetItemWithKeywords(container, sub, v, kwargs);
             Py_DECREF(kwargs);
             Py_DECREF(v);
             Py_DECREF(container);
@@ -2062,7 +2062,7 @@ main_loop:
             int err;
             STACK_SHRINK(3);
             /* del container[sub] */
-            err = PyObject_DelItemWithKeywordArgs(container, sub, kwargs);
+            err = PyObject_DelItemWithKeywords(container, sub, kwargs);
             Py_DECREF(kwargs);
             Py_DECREF(container);
             Py_DECREF(sub);
