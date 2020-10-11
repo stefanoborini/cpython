@@ -2266,3 +2266,11 @@ expr_ty _PyPegen_collect_call_seqs(Parser *p, asdl_expr_seq *a, asdl_seq *b,
     return _Py_Call(_PyPegen_dummy_name(p), args, keywords, lineno,
                     col_offset, end_lineno, end_col_offset, arena);
 }
+
+expr_ty _PyPegen_extended_getitem(Parser *p, asdl_expr_seq *a, asdl_seq *b,
+                     int lineno, int col_offset, int end_lineno,
+                     int end_col_offset, PyArena *arena) {
+    printf("Hello");
+    return NULL;
+}
+
