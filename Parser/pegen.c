@@ -1547,7 +1547,7 @@ _set_list_context(Parser *p, expr_ty e, expr_context_ty ctx)
 static expr_ty
 _set_subscript_context(Parser *p, expr_ty e, expr_context_ty ctx)
 {
-    return _Py_Subscript(e->v.Subscript.value, e->v.Subscript.slice, ctx, EXTRA_EXPR(e, e));
+    return _Py_Subscript(e->v.Subscript.value, e->v.Subscript.slice, e->v.Subscript.keywords, ctx, EXTRA_EXPR(e, e));
 }
 
 static expr_ty

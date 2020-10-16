@@ -789,6 +789,7 @@ static const char * const Attribute_fields[]={
 static const char * const Subscript_fields[]={
     "value",
     "slice",
+    "keywords",
     "ctx",
 };
 static const char * const Starred_fields[]={
@@ -1432,7 +1433,7 @@ static int init_types(astmodulestate *state)
         "     | JoinedStr(expr* values)\n"
         "     | Constant(constant value, string? kind)\n"
         "     | Attribute(expr value, identifier attr, expr_context ctx)\n"
-        "     | Subscript(expr value, expr slice, expr_context ctx)\n"
+        "     | Subscript(expr value, expr slice, keyword* keywords, expr_context ctx)\n"
         "     | Starred(expr value, expr_context ctx)\n"
         "     | Name(identifier id, expr_context ctx)\n"
         "     | List(expr* elts, expr_context ctx)\n"
@@ -1541,8 +1542,8 @@ static int init_types(astmodulestate *state)
         "Attribute(expr value, identifier attr, expr_context ctx)");
     if (!state->Attribute_type) return 0;
     state->Subscript_type = make_type(state, "Subscript", state->expr_type,
-                                      Subscript_fields, 3,
-        "Subscript(expr value, expr slice, expr_context ctx)");
+                                      Subscript_fields, 4,
+        "Subscript(expr value, expr slice, keyword* keywords, expr_context ctx)");
     if (!state->Subscript_type) return 0;
     state->Starred_type = make_type(state, "Starred", state->expr_type,
                                     Starred_fields, 2,
@@ -3074,8 +3075,9 @@ Attribute(expr_ty value, identifier attr, expr_context_ty ctx, int lineno, int
 }
 
 expr_ty
-Subscript(expr_ty value, expr_ty slice, expr_context_ty ctx, int lineno, int
-          col_offset, int end_lineno, int end_col_offset, PyArena *arena)
+Subscript(expr_ty value, expr_ty slice, asdl_keyword_seq * keywords,
+          expr_context_ty ctx, int lineno, int col_offset, int end_lineno, int
+          end_col_offset, PyArena *arena)
 {
     expr_ty p;
     if (!value) {
@@ -3099,6 +3101,7 @@ Subscript(expr_ty value, expr_ty slice, expr_context_ty ctx, int lineno, int
     p->kind = Subscript_kind;
     p->v.Subscript.value = value;
     p->v.Subscript.slice = slice;
+    p->v.Subscript.keywords = keywords;
     p->v.Subscript.ctx = ctx;
     p->lineno = lineno;
     p->col_offset = col_offset;
@@ -4337,6 +4340,12 @@ ast2obj_expr(astmodulestate *state, void* _o)
         value = ast2obj_expr(state, o->v.Subscript.slice);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->slice, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_list(state, (asdl_seq*)o->v.Subscript.keywords,
+                             ast2obj_keyword);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->keywords, value) == -1)
             goto failed;
         Py_DECREF(value);
         value = ast2obj_expr_context(state, o->v.Subscript.ctx);
@@ -8254,6 +8263,7 @@ obj2ast_expr(astmodulestate *state, PyObject* obj, expr_ty* out, PyArena* arena)
     if (isinstance) {
         expr_ty value;
         expr_ty slice;
+        asdl_keyword_seq* keywords;
         expr_context_ty ctx;
 
         if (_PyObject_LookupAttr(obj, state->value, &tmp) < 0) {
@@ -8282,6 +8292,39 @@ obj2ast_expr(astmodulestate *state, PyObject* obj, expr_ty* out, PyArena* arena)
             if (res != 0) goto failed;
             Py_CLEAR(tmp);
         }
+        if (_PyObject_LookupAttr(obj, state->keywords, &tmp) < 0) {
+            return 1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"keywords\" missing from Subscript");
+            return 1;
+        }
+        else {
+            int res;
+            Py_ssize_t len;
+            Py_ssize_t i;
+            if (!PyList_Check(tmp)) {
+                PyErr_Format(PyExc_TypeError, "Subscript field \"keywords\" must be a list, not a %.200s", _PyType_Name(Py_TYPE(tmp)));
+                goto failed;
+            }
+            len = PyList_GET_SIZE(tmp);
+            keywords = _Py_asdl_keyword_seq_new(len, arena);
+            if (keywords == NULL) goto failed;
+            for (i = 0; i < len; i++) {
+                keyword_ty val;
+                PyObject *tmp2 = PyList_GET_ITEM(tmp, i);
+                Py_INCREF(tmp2);
+                res = obj2ast_keyword(state, tmp2, &val, arena);
+                Py_DECREF(tmp2);
+                if (res != 0) goto failed;
+                if (len != PyList_GET_SIZE(tmp)) {
+                    PyErr_SetString(PyExc_RuntimeError, "Subscript field \"keywords\" changed size during iteration");
+                    goto failed;
+                }
+                asdl_seq_SET(keywords, i, val);
+            }
+            Py_CLEAR(tmp);
+        }
         if (_PyObject_LookupAttr(obj, state->ctx, &tmp) < 0) {
             return 1;
         }
@@ -8295,8 +8338,8 @@ obj2ast_expr(astmodulestate *state, PyObject* obj, expr_ty* out, PyArena* arena)
             if (res != 0) goto failed;
             Py_CLEAR(tmp);
         }
-        *out = Subscript(value, slice, ctx, lineno, col_offset, end_lineno,
-                         end_col_offset, arena);
+        *out = Subscript(value, slice, keywords, ctx, lineno, col_offset,
+                         end_lineno, end_col_offset, arena);
         if (*out == NULL) goto failed;
         return 0;
     }

@@ -425,6 +425,7 @@ struct _expr {
         struct {
             expr_ty value;
             expr_ty slice;
+            asdl_keyword_seq *keywords;
             expr_context_ty ctx;
         } Subscript;
 
@@ -719,10 +720,11 @@ expr_ty _Py_Constant(constant value, string kind, int lineno, int col_offset,
 expr_ty _Py_Attribute(expr_ty value, identifier attr, expr_context_ty ctx, int
                       lineno, int col_offset, int end_lineno, int
                       end_col_offset, PyArena *arena);
-#define Subscript(a0, a1, a2, a3, a4, a5, a6, a7) _Py_Subscript(a0, a1, a2, a3, a4, a5, a6, a7)
-expr_ty _Py_Subscript(expr_ty value, expr_ty slice, expr_context_ty ctx, int
-                      lineno, int col_offset, int end_lineno, int
-                      end_col_offset, PyArena *arena);
+#define Subscript(a0, a1, a2, a3, a4, a5, a6, a7, a8) _Py_Subscript(a0, a1, a2, a3, a4, a5, a6, a7, a8)
+expr_ty _Py_Subscript(expr_ty value, expr_ty slice, asdl_keyword_seq *
+                      keywords, expr_context_ty ctx, int lineno, int
+                      col_offset, int end_lineno, int end_col_offset, PyArena
+                      *arena);
 #define Starred(a0, a1, a2, a3, a4, a5, a6) _Py_Starred(a0, a1, a2, a3, a4, a5, a6)
 expr_ty _Py_Starred(expr_ty value, expr_context_ty ctx, int lineno, int
                     col_offset, int end_lineno, int end_col_offset, PyArena
