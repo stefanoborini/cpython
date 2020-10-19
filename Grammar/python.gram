@@ -467,8 +467,9 @@ primary[expr_ty]:
                  (b) ? ((expr_ty) b)->v.Call.args : NULL,
                  (b) ? ((expr_ty) b)->v.Call.keywords : NULL,
                  EXTRA) }
-    | a=primary '[' c=kwargs ']' { _Py_Subscript(a, NULL, _PyPegen_seq_delete_starred_exprs(p, c), Load, EXTRA) }
+    | a=primary '[' b=arguments ']' { _Py_Subscript(a, NULL, NULL, Load, EXTRA) }
     | a=primary '[' b=slices ']' { _Py_Subscript(a, b, NULL, Load, EXTRA) }
+    | invalid_subscript
     | atom
 
 slices[expr_ty]:
@@ -688,7 +689,8 @@ invalid_double_type_comments:
 invalid_with_item:
     | expression 'as' a=expression {
         RAISE_SYNTAX_ERROR_INVALID_TARGET(STAR_TARGETS, a) }
-
+invalid_subscript:
+    | primary '[' ']' { RAISE_SYNTAX_ERROR("Indexing argument cannot be empty") }
 invalid_for_target:
     | ASYNC? 'for' a=star_expressions {
         RAISE_SYNTAX_ERROR_INVALID_TARGET(FOR_TARGETS, a) }
