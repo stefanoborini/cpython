@@ -918,6 +918,9 @@ stack_effect(int opcode, int oparg, int jump)
         case BINARY_ADD:
         case BINARY_SUBTRACT:
         case BINARY_SUBSCR:
+            return -1;
+        case BINARY_SUBSCR_KW:
+            return -1;
         case BINARY_FLOOR_DIVIDE:
         case BINARY_TRUE_DIVIDE:
             return -1;
@@ -933,7 +936,11 @@ stack_effect(int opcode, int oparg, int jump)
             return -1;
         case STORE_SUBSCR:
             return -3;
+        case STORE_SUBSCR_KW:
+            return -3;
         case DELETE_SUBSCR:
+            return -2;
+        case DELETE_SUBSCR_KW:
             return -2;
 
         case BINARY_LSHIFT:
@@ -5359,6 +5366,8 @@ compiler_warn(struct compiler *c, const char *format, ...)
 static int
 compiler_subscript(struct compiler *c, expr_ty e)
 {
+    Py_ssize_t i, nkwelts;
+    PyObject *names;
     expr_context_ty ctx = e->v.Subscript.ctx;
     int op = 0;
 
@@ -5371,16 +5380,30 @@ compiler_subscript(struct compiler *c, expr_ty e)
         }
     }
 
-    switch (ctx) {
-        case Load:    op = BINARY_SUBSCR; break;
-        case Store:   op = STORE_SUBSCR; break;
-        case Del:     op = DELETE_SUBSCR; break;
+    printf("e->v.Subscript.keywords = %p\n", e->v.Subscript.keywords);
+    if (e->v.Subscript.keywords == NULL) {
+        switch (ctx) {
+            case Load:    op = BINARY_SUBSCR; break;
+            case Store:   op = STORE_SUBSCR; break;
+            case Del:     op = DELETE_SUBSCR; break;
+        }
+        assert(op);
+        VISIT(c, expr, e->v.Subscript.value);
+        VISIT(c, expr, e->v.Subscript.slice);
+        ADDOP(c, op);
+        return 1;
+    } else {
+        switch (ctx) {
+            case Load:    op = BINARY_SUBSCR_KW; break;
+            case Store:   op = STORE_SUBSCR_KW; break;
+            case Del:     op = DELETE_SUBSCR_KW; break;
+        }
+        assert(op);
+        VISIT(c, expr, e->v.Subscript.value);
+        VISIT(c, expr, e->v.Subscript.slice);
+        ADDOP(c, op);
+        return 1;
     }
-    assert(op);
-    VISIT(c, expr, e->v.Subscript.value);
-    VISIT(c, expr, e->v.Subscript.slice);
-    ADDOP(c, op);
-    return 1;
 }
 
 static int
