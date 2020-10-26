@@ -589,8 +589,6 @@ del_targets[asdl_expr_seq*]: a[asdl_expr_seq*]=','.del_target+ [','] { a }
 del_target[expr_ty] (memo):
     | a=t_primary '.' b=NAME !t_lookahead { _Py_Attribute(a, b->v.Name.id, Del, EXTRA) }
     | a=t_primary '[' c=kwargs ']' !t_lookahead { _Py_Subscript(a, NULL, CHECK_NULL_ALLOWED(_PyPegen_seq_delete_starred_exprs(p, c)), Del, EXTRA) }
-    | a=t_primary '[' b=','.slice+ ',' c=kwargs ']' !t_lookahead { _Py_Subscript(a, NULL, CHECK_NULL_ALLOWED(_PyPegen_seq_delete_starred_exprs(p, c)), Del, EXTRA) }
-    | a=t_primary '[' b=slice ',' c=kwargs ']' !t_lookahead { _Py_Subscript(a, NULL, CHECK_NULL_ALLOWED(_PyPegen_seq_delete_starred_exprs(p, c)), Del, EXTRA) }
     | a=t_primary '[' b=slices ']' !t_lookahead { _Py_Subscript(a, b, NULL, Del, EXTRA) }
     | del_t_atom
 del_t_atom[expr_ty]:
@@ -606,7 +604,7 @@ target[expr_ty] (memo):
     | t_atom
 t_primary[expr_ty]:
     | a=t_primary '.' b=NAME &t_lookahead { _Py_Attribute(a, b->v.Name.id, Load, EXTRA) }
-    | a=t_primary '[' b=','.slice+ ',' c=kwargs ']' &t_lookahead { _Py_Subscript(a, NULL, CHECK_NULL_ALLOWED(_PyPegen_seq_delete_starred_exprs(p, c)), Load, EXTRA) }
+    | a=t_primary '[' c=kwargs ']' &t_lookahead { _Py_Subscript(a, NULL, CHECK_NULL_ALLOWED(_PyPegen_seq_delete_starred_exprs(p, c)), Load, EXTRA) }
     | a=t_primary '[' b=slices ']' &t_lookahead { _Py_Subscript(a, b, NULL, Load, EXTRA) }
     | a=t_primary b=genexp &t_lookahead { _Py_Call(a, CHECK(_PyPegen_singleton_seq(p, b)), NULL, EXTRA) }
     | a=t_primary '(' b=[arguments] ')' &t_lookahead {
