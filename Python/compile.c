@@ -5368,6 +5368,7 @@ compiler_subscript(struct compiler *c, expr_ty e)
 {
     Py_ssize_t i, nkwelts;
     PyObject *names;
+    asdl_keyword_seq *keywords;
     expr_context_ty ctx = e->v.Subscript.ctx;
     int op = 0;
 
@@ -5379,9 +5380,8 @@ compiler_subscript(struct compiler *c, expr_ty e)
             return 0;
         }
     }
-
-    printf("e->v.Subscript.keywords = %p\n", e->v.Subscript.keywords);
-    if (e->v.Subscript.keywords == NULL) {
+    keywords = e->v.Subscript.keywords;
+    if (keywords == NULL) {
         switch (ctx) {
             case Load:    op = BINARY_SUBSCR; break;
             case Store:   op = STORE_SUBSCR; break;
@@ -5401,6 +5401,23 @@ compiler_subscript(struct compiler *c, expr_ty e)
         assert(op);
         VISIT(c, expr, e->v.Subscript.value);
         VISIT(c, expr, e->v.Subscript.slice);
+
+        nkwelts = asdl_seq_LEN(keywords);
+        for (i = 0; i < nkwelts; i++) {
+            keyword_ty kw = asdl_seq_GET(keywords, i);
+        }
+        VISIT_SEQ(c, keyword, keywords);
+        names = PyTuple_New(nkwelts);
+        if (names == NULL) {
+            return 0;
+        }
+        for (i = 0; i < nkwelts; i++) {
+            keyword_ty kw = asdl_seq_GET(keywords, i);
+            Py_INCREF(kw->arg);
+            PyTuple_SET_ITEM(names, i, kw->arg);
+        }
+
+        ADDOP_LOAD_CONST_NEW(c, names);
         ADDOP(c, op);
         return 1;
     }
