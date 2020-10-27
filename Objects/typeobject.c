@@ -77,7 +77,6 @@ _Py_IDENTIFIER(__delitem__);
 _Py_IDENTIFIER(__dict__);
 _Py_IDENTIFIER(__doc__);
 _Py_IDENTIFIER(__getattribute__);
-_Py_IDENTIFIER(__getitem__);
 _Py_IDENTIFIER(__hash__);
 _Py_IDENTIFIER(__init_subclass__);
 _Py_IDENTIFIER(__len__);
@@ -6385,6 +6384,20 @@ FUNCNAME(PyObject *self, PyObject *other) \
 #define SLOT1BIN(FUNCNAME, SLOTNAME, OPSTR, ROPSTR) \
     SLOT1BINFULL(FUNCNAME, FUNCNAME, SLOTNAME, OPSTR, ROPSTR)
 
+_Py_IDENTIFIER(__getitem__);
+
+static PyObject *
+slot_mp_subscript(PyObject *self, PyObject *args, PyObject *kwds)
+{
+    PyThreadState *tstate = _PyThreadState_GET();
+    int unbound;
+
+    PyObject *stack[3] = {self, args, kwds};
+    PyObject *retval = vectorcall_method(&PyId___getitem__, stack, 3);
+    return retval;
+}
+
+
 static Py_ssize_t
 slot_sq_length(PyObject *self)
 {
@@ -6490,8 +6503,6 @@ slot_sq_contains(PyObject *self, PyObject *value)
 }
 
 #define slot_mp_length slot_sq_length
-
-SLOT1(slot_mp_subscript, "__getitem__", PyObject *)
 
 static int
 slot_mp_ass_subscript(PyObject *self, PyObject *key, PyObject *value)
@@ -7293,9 +7304,8 @@ static slotdef slotdefs[] = {
            wrap_binaryfunc, "@="),
     MPSLOT("__len__", mp_length, slot_mp_length, wrap_lenfunc,
            "__len__($self, /)\n--\n\nReturn len(self)."),
-    MPSLOT("__getitem__", mp_subscript, slot_mp_subscript,
-           wrap_binaryfunc,
-           "__getitem__($self, key, /)\n--\n\nReturn self[key]."),
+    MPSLOT("__getitem__", mp_subscript, slot_mp_subscript, (wrapperfunc)(void(*)(void))wrap_call,
+           "__getitem__($self, /, *args, **kwargs)\n--\n\n"),
     MPSLOT("__setitem__", mp_ass_subscript, slot_mp_ass_subscript,
            wrap_objobjargproc,
            "__setitem__($self, key, value, /)\n--\n\nSet self[key] to value."),

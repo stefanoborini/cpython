@@ -292,7 +292,7 @@ PyAPI_FUNC(PyObject *) PyObject_GetItem(PyObject *o, PyObject *key);
    Return NULL on failure.
 
   This is the equivalent of the Python expression: o[key, arg=val] */
-PyAPI_FUNC(PyObject *) PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs);
+PyAPI_FUNC(PyObject *) PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs, PyObject *names);
 
 
 /* Map the object 'key' to the value 'v' into 'o'.

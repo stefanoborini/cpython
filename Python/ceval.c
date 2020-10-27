@@ -1745,10 +1745,11 @@ main_loop:
         }
 
         case TARGET(BINARY_SUBSCR_KW): {
-            PyObject *sub = POP();
             PyObject *container = POP();
-            PyObject *kwargs = TOP();
-            PyObject *res = PyObject_GetItemWithKeywords(container, sub, kwargs);
+            PyObject *sub = POP();
+            PyObject *kwargs = POP();
+            PyObject *names = TOP();
+            PyObject *res = PyObject_GetItemWithKeywords(container, sub, kwargs, names);
             Py_DECREF(kwargs);
             Py_DECREF(container);
             Py_DECREF(sub);

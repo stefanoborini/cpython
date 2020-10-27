@@ -159,7 +159,7 @@ PyObject_GetItem(PyObject *o, PyObject *key)
 
     m = Py_TYPE(o)->tp_as_mapping;
     if (m && m->mp_subscript) {
-        PyObject *item = m->mp_subscript(o, key);
+        PyObject *item = m->mp_subscript(o, key, NULL);
         assert((item != NULL) ^ (PyErr_Occurred() != NULL));
         return item;
     }
@@ -176,7 +176,7 @@ PyObject_GetItem(PyObject *o, PyObject *key)
         else {
             return type_error("sequence index must "
                               "be integer, not '%.200s'", key);
-        }
+         }
     }
 
     if (PyType_Check(o)) {
@@ -202,7 +202,7 @@ PyObject_GetItem(PyObject *o, PyObject *key)
 }
 
 PyObject *
-PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
+PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs, PyObject *names)
 {
     PyMappingMethods *m;
     PySequenceMethods *ms;
@@ -213,7 +213,8 @@ PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
 
     m = Py_TYPE(o)->tp_as_mapping;
     if (m && m->mp_subscript) {
-        PyObject *item = m->mp_subscript(o, key);
+        PyObject *item = m->mp_subscript(o, key, names);
+        printf("QQQ %p\n", m);
         assert((item != NULL) ^ (PyErr_Occurred() != NULL));
         return item;
     }
@@ -1858,7 +1859,7 @@ PySequence_GetSlice(PyObject *s, Py_ssize_t i1, Py_ssize_t i2)
         PyObject *slice = _PySlice_FromIndices(i1, i2);
         if (!slice)
             return NULL;
-        res = mp->mp_subscript(s, slice);
+        res = mp->mp_subscript(s, slice, NULL);
         Py_DECREF(slice);
         return res;
     }
