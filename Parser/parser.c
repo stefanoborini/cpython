@@ -13482,7 +13482,6 @@ del_targets_rule(Parser *p)
 
 // del_target:
 //     | t_primary '.' NAME !t_lookahead
-//     | t_primary '[' kwargs ']' !t_lookahead
 //     | t_primary '[' slices ']' !t_lookahead
 //     | del_t_atom
 static expr_ty
@@ -13548,50 +13547,6 @@ del_target_rule(Parser *p)
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s del_target[%d-%d]: %s failed!\n", p->level, ' ',
                   p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "t_primary '.' NAME !t_lookahead"));
-    }
-    { // t_primary '[' kwargs ']' !t_lookahead
-        if (p->error_indicator) {
-            D(p->level--);
-            return NULL;
-        }
-        D(fprintf(stderr, "%*c> del_target[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "t_primary '[' kwargs ']' !t_lookahead"));
-        Token * _literal;
-        Token * _literal_1;
-        expr_ty a;
-        asdl_seq* c;
-        if (
-            (a = t_primary_rule(p))  // t_primary
-            &&
-            (_literal = _PyPegen_expect_token(p, 9))  // token='['
-            &&
-            (c = kwargs_rule(p))  // kwargs
-            &&
-            (_literal_1 = _PyPegen_expect_token(p, 10))  // token=']'
-            &&
-            _PyPegen_lookahead(0, t_lookahead_rule, p)
-        )
-        {
-            D(fprintf(stderr, "%*c+ del_target[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "t_primary '[' kwargs ']' !t_lookahead"));
-            Token *_token = _PyPegen_get_last_nonnwhitespace_token(p);
-            if (_token == NULL) {
-                D(p->level--);
-                return NULL;
-            }
-            int _end_lineno = _token->end_lineno;
-            UNUSED(_end_lineno); // Only used by EXTRA macro
-            int _end_col_offset = _token->end_col_offset;
-            UNUSED(_end_col_offset); // Only used by EXTRA macro
-            _res = _Py_Subscript ( a , NULL , CHECK_NULL_ALLOWED ( _PyPegen_seq_delete_starred_exprs ( p , c ) ) , Del , EXTRA );
-            if (_res == NULL && PyErr_Occurred()) {
-                p->error_indicator = 1;
-                D(p->level--);
-                return NULL;
-            }
-            goto done;
-        }
-        p->mark = _mark;
-        D(fprintf(stderr, "%*c%s del_target[%d-%d]: %s failed!\n", p->level, ' ',
-                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "t_primary '[' kwargs ']' !t_lookahead"));
     }
     { // t_primary '[' slices ']' !t_lookahead
         if (p->error_indicator) {
