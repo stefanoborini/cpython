@@ -2023,20 +2023,7 @@ main_loop:
         }
 
         case TARGET(STORE_SUBSCR_KW): {
-            PyObject *sub = TOP();
-            PyObject *container = SECOND();
-            PyObject *v = THIRD();
-            PyObject *kwargs = FOURTH();
-            int err;
-            STACK_SHRINK(4);
-            err = PyObject_SetItemWithKeywords(container, sub, v, kwargs);
-            Py_DECREF(kwargs);
-            Py_DECREF(v);
-            Py_DECREF(container);
-            Py_DECREF(sub);
-            if (err != 0)
-                goto error;
-            DISPATCH();
+            goto error;
         }
 
         case TARGET(DELETE_SUBSCR): {
@@ -2054,19 +2041,7 @@ main_loop:
         }
 
         case TARGET(DELETE_SUBSCR_KW): {
-            PyObject *sub = TOP();
-            PyObject *container = SECOND();
-            PyObject *kwargs = THIRD();
-            int err;
-            STACK_SHRINK(3);
-            /* del container[sub] */
-            err = PyObject_DelItemWithKeywords(container, sub, kwargs);
-            Py_DECREF(kwargs);
-            Py_DECREF(container);
-            Py_DECREF(sub);
-            if (err != 0)
-                goto error;
-            DISPATCH();
+            goto error;
         }
 
 

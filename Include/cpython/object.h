@@ -163,7 +163,7 @@ typedef struct {
 
 typedef struct {
     lenfunc mp_length;
-    ternaryfunc mp_subscript;
+    binaryfunc mp_subscript;
     objobjargproc mp_ass_subscript;
 } PyMappingMethods;
 
