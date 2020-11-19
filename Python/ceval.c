@@ -1866,6 +1866,11 @@ main_loop:
             DISPATCH();
         }
 
+        case TARGET(BINARY_SUBSCR_KW): {
+            /* TODO */
+            goto error;
+        }
+
         case TARGET(BINARY_LSHIFT): {
             PyObject *right = POP();
             PyObject *left = TOP();
@@ -2129,6 +2134,11 @@ main_loop:
             DISPATCH();
         }
 
+        case TARGET(STORE_SUBSCR_KW): {
+            /* TODO */
+            goto error;
+        }
+
         case TARGET(DELETE_SUBSCR): {
             PyObject *sub = TOP();
             PyObject *container = SECOND();
@@ -2141,6 +2151,11 @@ main_loop:
             if (err != 0)
                 goto error;
             DISPATCH();
+        }
+
+        case TARGET(DELETE_SUBSCR_KW): {
+            /* TODO */
+            goto error;
         }
 
         case TARGET(PRINT_EXPR): {
