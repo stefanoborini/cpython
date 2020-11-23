@@ -227,10 +227,6 @@ eval_tests = [
   "a.b",
   # Subscript
   "a[b:c]",
-  # Keyword arguments in subscript
-  "a[b, k=k]",
-  "a[b, c, k=k, l=l]",
-  "a[k=k]",
   # Name
   "v",
   # List
@@ -330,23 +326,8 @@ class AST_Tests(unittest.TestCase):
 
     def test_subscr(self):
         mod = ast.parse("x[3]")
-        self.assertEqual(mod.body[0].value.slice,
-                         ast.Index(value=ast.Num(n=3)))
+        self.assertEqual(mod.body[0].value.slice, ast.Constant(3))
         self.assertEqual(mod.body[0].value.keywords, [])
-
-        mod = ast.parse("x[3, k=z]")
-        self.assertEqual(mod.body[0].value.slice,
-                         ast.Index(value=ast.Num(n=3)))
-        self.assertEqual(mod.body[0].value.keywords,
-            [ast.keyword("k", ast.Name("z", ast.Load()))])
-
-        mod = ast.parse("x[k=z, l=x]")
-        self.assertEqual(mod.body[0].value.slice,
-                         ast.Index(value=ast.Tuple(elts=[], ctx=ast.Load())))
-        self.assertEqual(mod.body[0].value.keywords,
-            [ast.keyword("k", ast.Name("z", ast.Load())),
-             ast.keyword("l", ast.Name("x", ast.Load()))
-            ])
 
     def test_from_import(self):
         im = ast.parse("from . import y").body[0]
