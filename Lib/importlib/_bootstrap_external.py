@@ -311,7 +311,8 @@ _code_type = type(_write_atomic.__code__)
 #     Python 3.9a2  3425 (simplify bytecodes for **value unpacking)
 #     Python 3.10a1 3430 (Make 'annotations' future by default)
 #     Python 3.10a1 3431 (New line number table format -- PEP 626)
-#     Python 3.10a1 3432 (Added new opcodes for kw in index -- PEP 637)
+#     Python 3.10a2 3432 (Function annotation for MAKE_FUNCTION is changed from dict to tuple bpo-42202)
+#     Python 3.10a3 3433 (Added new opcodes for kw in index -- PEP 637)
 
 #
 # MAGIC must change whenever the bytecode emitted by the compiler may no
@@ -321,7 +322,7 @@ _code_type = type(_write_atomic.__code__)
 # Whenever MAGIC_NUMBER is changed, the ranges in the magic_values array
 # in PC/launcher.c must also be updated.
 
-MAGIC_NUMBER = (3432).to_bytes(2, 'little') + b'\r\n'
+MAGIC_NUMBER = (3433).to_bytes(2, 'little') + b'\r\n'
 _RAW_MAGIC_NUMBER = int.from_bytes(MAGIC_NUMBER, 'little')  # For import.c
 
 _PYCACHE = '__pycache__'
@@ -755,8 +756,8 @@ class WindowsRegistryFinder:
         '\\Modules\\{fullname}\\Debug')
     DEBUG_BUILD = (_MS_WINDOWS and '_d.pyd' in EXTENSION_SUFFIXES)
 
-    @classmethod
-    def _open_registry(cls, key):
+    @staticmethod
+    def _open_registry(key):
         try:
             return winreg.OpenKey(winreg.HKEY_CURRENT_USER, key)
         except OSError:
@@ -832,7 +833,8 @@ class _LoaderBasics:
         _bootstrap._call_with_frames_removed(exec, code, module.__dict__)
 
     def load_module(self, fullname):
-        """This module is deprecated."""
+        """This method is deprecated."""
+        # Warning implemented in _load_module_shim().
         return _bootstrap._load_module_shim(self, fullname)
 
 
@@ -1007,7 +1009,7 @@ class FileLoader:
         """
         # The only reason for this method is for the name check.
         # Issue #14857: Avoid the zero-argument form of super so the implementation
-        # of that form can be updated without breaking the frozen module
+        # of that form can be updated without breaking the frozen module.
         return super(FileLoader, self).load_module(fullname)
 
     @_check_name
@@ -1220,8 +1222,8 @@ class _NamespaceLoader:
     def __init__(self, name, path, path_finder):
         self._path = _NamespacePath(name, path, path_finder)
 
-    @classmethod
-    def module_repr(cls, module):
+    @staticmethod
+    def module_repr(module):
         """Return repr for the module.
 
         The method is deprecated.  The import machinery does the job itself.
@@ -1253,6 +1255,7 @@ class _NamespaceLoader:
         # The import system never calls this method.
         _bootstrap._verbose_message('namespace module loaded with path {!r}',
                                     self._path)
+        # Warning implemented in _load_module_shim().
         return _bootstrap._load_module_shim(self, fullname)
 
 
@@ -1262,8 +1265,8 @@ class PathFinder:
 
     """Meta path finder for sys.path and package __path__ attributes."""
 
-    @classmethod
-    def invalidate_caches(cls):
+    @staticmethod
+    def invalidate_caches():
         """Call the invalidate_caches() method on all path entry finders
         stored in sys.path_importer_caches (where implemented)."""
         for name, finder in list(sys.path_importer_cache.items()):
@@ -1272,8 +1275,8 @@ class PathFinder:
             elif hasattr(finder, 'invalidate_caches'):
                 finder.invalidate_caches()
 
-    @classmethod
-    def _path_hooks(cls, path):
+    @staticmethod
+    def _path_hooks(path):
         """Search sys.path_hooks for a finder for 'path'."""
         if sys.path_hooks is not None and not sys.path_hooks:
             _warnings.warn('sys.path_hooks is empty', ImportWarning)
@@ -1391,8 +1394,8 @@ class PathFinder:
             return None
         return spec.loader
 
-    @classmethod
-    def find_distributions(cls, *args, **kwargs):
+    @staticmethod
+    def find_distributions(*args, **kwargs):
         """
         Find distributions.
 
