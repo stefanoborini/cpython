@@ -1562,7 +1562,7 @@ _set_list_context(Parser *p, expr_ty e, expr_context_ty ctx)
 static expr_ty
 _set_subscript_context(Parser *p, expr_ty e, expr_context_ty ctx)
 {
-    return _Py_Subscript(e->v.Subscript.value, e->v.Subscript.slice, NULL, ctx, EXTRA_EXPR(e, e));
+    return _Py_Subscript(e->v.Subscript.value, e->v.Subscript.slice, e->v.Subscript.keywords, ctx, EXTRA_EXPR(e, e));
 }
 
 static expr_ty
@@ -2280,4 +2280,51 @@ expr_ty _PyPegen_collect_call_seqs(Parser *p, asdl_expr_seq *a, asdl_seq *b,
 
     return _Py_Call(_PyPegen_dummy_name(p), args, keywords, lineno,
                     col_offset, end_lineno, end_col_offset, arena);
+}
+
+
+expr_ty
+_PyPegen_subscript_from_arguments(Parser *p, asdl_expr_seq *a, asdl_seq *k,
+                                  int lineno, int col_offset,
+                                  int end_lineno, int end_col_offset,
+                                  PyArena *arena)
+{
+    expr_ty c = _PyPegen_collect_call_seqs(p, a, k, 1, 0, 1, 0, arena);
+    if (!c) {
+        return NULL;
+    }
+    expr_ty slice = NULL;
+    if (asdl_seq_LEN(c->v.Call.args) == 1) {
+        slice = asdl_seq_GET(c->v.Call.args, 0);
+    }
+    if (!slice || slice->kind == Starred_kind) {
+        slice = _Py_Tuple(c->v.Call.args, Load,
+                          lineno, col_offset, end_lineno, end_col_offset,
+                          arena);
+        if (!slice) {
+            return NULL;
+        }
+    }
+    return _Py_Subscript(_PyPegen_dummy_name(p), slice, c->v.Call.keywords,
+                         Load, 1, 0, 1, 0, arena);
+}
+
+expr_ty
+_PyPegen_subscript_from_one_tuple(Parser *p, expr_ty e,
+                                  int lineno, int col_offset,
+                                  int end_lineno, int end_col_offset,
+                                  PyArena *arena)
+{
+    asdl_expr_seq *elts = (asdl_expr_seq *)_PyPegen_singleton_seq(p, e);
+    if (!elts) {
+        return NULL;
+    }
+    expr_ty slice = _Py_Tuple(elts, Load,
+                              lineno, col_offset, end_lineno, end_col_offset,
+                              arena);
+    if (!slice) {
+        return NULL;
+    }
+    return _Py_Subscript(_PyPegen_dummy_name(p), slice, NULL,
+                         Load, 1, 0, 1, 0, arena);
 }

@@ -265,6 +265,10 @@ expr_ty _PyPegen_concatenate_strings(Parser *p, asdl_seq *);
 asdl_seq *_PyPegen_join_sequences(Parser *, asdl_seq *, asdl_seq *);
 int _PyPegen_check_barry_as_flufl(Parser *, Token *);
 mod_ty _PyPegen_make_module(Parser *, asdl_stmt_seq *);
+expr_ty _PyPegen_subscript_from_arguments(Parser*, asdl_expr_seq*, asdl_seq*,
+                                          int, int, int, int, PyArena*);
+expr_ty _PyPegen_subscript_from_one_tuple(Parser*, expr_ty,
+                                          int, int, int, int, PyArena*);
 
 // Error reporting helpers
 typedef enum {

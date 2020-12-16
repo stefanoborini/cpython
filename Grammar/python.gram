@@ -482,15 +482,12 @@ primary[expr_ty]:
                  (b) ? ((expr_ty) b)->v.Call.args : NULL,
                  (b) ? ((expr_ty) b)->v.Call.keywords : NULL,
                  EXTRA) }
-    | a=primary '[' b=slices ']' { _Py_Subscript(a, b, NULL, Load, EXTRA) }
+    | a=primary '[' b=slice_arguments ']' {
+        _Py_Subscript(a, b->v.Subscript.slice, b->v.Subscript.keywords, Load, EXTRA) }
     | atom
 
-slices[expr_ty]:
-    | a=slice !',' { a }
-    | a[asdl_expr_seq*]=','.slice+ [','] { _Py_Tuple(a, Load, EXTRA) }
 slice[expr_ty]:
     | a=[expression] ':' b=[expression] c=[':' d=[expression] { d }] { _Py_Slice(a, b, c, EXTRA) }
-    | a=named_expression { a }
 atom[expr_ty]:
     | NAME
     | 'True' { _Py_Constant(Py_True, NULL, EXTRA) }
@@ -575,6 +572,40 @@ kwarg_or_double_starred[KeywordOrStarred*]:
     | '**' a=expression { _PyPegen_keyword_or_starred(p, CHECK(keyword_ty, _Py_keyword(NULL, a, EXTRA)), 1) }
     | invalid_kwarg
 
+slice_arguments[expr_ty] (memo):
+    | a=slice_args [','] &']' { a }
+    | invalid_arguments
+slice_args[expr_ty]:
+    | a[expr_ty]=(slice | named_expression !'=') ',' &']' {
+        _PyPegen_subscript_from_one_tuple(p, a, EXTRA) }
+    | a[asdl_expr_seq*]=','.(slice | slice_starred_expression | named_expression !'=')+  b=[',' k=slice_kwargs_check {k}] {
+        _PyPegen_subscript_from_arguments(p, a, b, EXTRA) }
+    | a=slice_kwargs_check {
+        _PyPegen_subscript_from_arguments(p, NULL, a, EXTRA) }
+
+slice_kwargs_check[asdl_seq*]:
+    | a=slice_kwargs {
+        CHECK_VERSION(asdl_seq*, 10, "subscription using keywords or unpacking is", a) }
+slice_kwargs[asdl_seq*]:
+    | a=','.slice_kwarg_or_starred+ ',' b=','.slice_kwarg_or_double_starred+ {
+        _PyPegen_join_sequences(p, a, b) }
+    | ','.slice_kwarg_or_starred+
+    | ','.slice_kwarg_or_double_starred+
+slice_starred_expression[expr_ty]:
+    | '*' a=expression {
+        CHECK_VERSION(expr_ty, 10, "subscription using unpacking is", _Py_Starred(a, Load, EXTRA)) }
+slice_kwarg_or_starred[KeywordOrStarred*]:
+    | a=NAME '=' b=(slice | expression) {
+        _PyPegen_keyword_or_starred(p, CHECK(keyword_ty, _Py_keyword(a->v.Name.id, b, EXTRA)), 1) }
+    | a=starred_expression { _PyPegen_keyword_or_starred(p, a, 0) }
+    | invalid_kwarg
+slice_kwarg_or_double_starred[KeywordOrStarred*]:
+    | a=NAME '=' b=(slice | expression) {
+        _PyPegen_keyword_or_starred(p, CHECK(keyword_ty, _Py_keyword(a->v.Name.id, b, EXTRA)), 1) }
+    | '**' a=expression {
+        _PyPegen_keyword_or_starred(p, CHECK(keyword_ty, _Py_keyword(NULL, a, EXTRA)), 1) }
+    | invalid_kwarg
+
 # NOTE: star_targets may contain *bitwise_or, targets may not.
 star_targets[expr_ty]:
     | a=star_target !',' { a }
@@ -585,7 +616,8 @@ star_target[expr_ty] (memo):
     | '*' a=(!'*' star_target) {
         _Py_Starred(CHECK(expr_ty, _PyPegen_set_expr_context(p, a, Store)), Store, EXTRA) }
     | a=t_primary '.' b=NAME !t_lookahead { _Py_Attribute(a, b->v.Name.id, Store, EXTRA) }
-    | a=t_primary '[' b=slices ']' !t_lookahead { _Py_Subscript(a, b, NULL, Store, EXTRA) }
+    | a=t_primary '[' b=slice_arguments ']' !t_lookahead {
+        _Py_Subscript(a, b->v.Subscript.slice, b->v.Subscript.keywords, Store, EXTRA) }
     | star_atom
 star_atom[expr_ty]:
     | a=NAME { _PyPegen_set_expr_context(p, a, Store) }
@@ -599,12 +631,14 @@ single_target[expr_ty]:
     | '(' a=single_target ')' { a }
 single_subscript_attribute_target[expr_ty]:
     | a=t_primary '.' b=NAME !t_lookahead { _Py_Attribute(a, b->v.Name.id, Store, EXTRA) }
-    | a=t_primary '[' b=slices ']' !t_lookahead { _Py_Subscript(a, b, NULL, Store, EXTRA) }
+    | a=t_primary '[' b=slice_arguments ']' !t_lookahead {
+        _Py_Subscript(a, b->v.Subscript.slice, b->v.Subscript.keywords, Store, EXTRA) }
 
 del_targets[asdl_expr_seq*]: a[asdl_expr_seq*]=','.del_target+ [','] { a }
 del_target[expr_ty] (memo):
     | a=t_primary '.' b=NAME !t_lookahead { _Py_Attribute(a, b->v.Name.id, Del, EXTRA) }
-    | a=t_primary '[' b=slices ']' !t_lookahead { _Py_Subscript(a, b, NULL, Del, EXTRA) }
+    | a=t_primary '[' b=slice_arguments ']' !t_lookahead {
+        _Py_Subscript(a, b->v.Subscript.slice, b->v.Subscript.keywords, Del, EXTRA) }
     | del_t_atom
 del_t_atom[expr_ty]:
     | a=NAME { _PyPegen_set_expr_context(p, a, Del) }
@@ -615,11 +649,13 @@ del_t_atom[expr_ty]:
 targets[asdl_expr_seq*]: a[asdl_expr_seq*]=','.target+ [','] { a }
 target[expr_ty] (memo):
     | a=t_primary '.' b=NAME !t_lookahead { _Py_Attribute(a, b->v.Name.id, Store, EXTRA) }
-    | a=t_primary '[' b=slices ']' !t_lookahead { _Py_Subscript(a, b, NULL, Store, EXTRA) }
+    | a=t_primary '[' b=slice_arguments ']' !t_lookahead {
+        _Py_Subscript(a, b->v.Subscript.slice, b->v.Subscript.keywords, Store, EXTRA) }
     | t_atom
 t_primary[expr_ty]:
     | a=t_primary '.' b=NAME &t_lookahead { _Py_Attribute(a, b->v.Name.id, Load, EXTRA) }
-    | a=t_primary '[' b=slices ']' &t_lookahead { _Py_Subscript(a, b, NULL, Load, EXTRA) }
+    | a=t_primary '[' b=slice_arguments ']' &t_lookahead {
+        _Py_Subscript(a, b->v.Subscript.slice, b->v.Subscript.keywords, Load, EXTRA) }
     | a=t_primary b=genexp &t_lookahead {
         _Py_Call(a, CHECK(asdl_expr_seq*, (asdl_expr_seq*)_PyPegen_singleton_seq(p, b)), NULL, EXTRA) }
     | a=t_primary '(' b=[arguments] ')' &t_lookahead {
@@ -646,7 +682,7 @@ invalid_arguments:
         RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, "Generator expression must be parenthesized") }
     | a=args ',' args { _PyPegen_arguments_parsing_error(p, a) }
 invalid_kwarg:
-    | a=expression '=' {
+    | expression a='=' {
         RAISE_SYNTAX_ERROR_KNOWN_LOCATION(
             a, "expression cannot contain assignment, perhaps you meant \"==\"?") }
 invalid_named_expression:
@@ -668,7 +704,7 @@ invalid_assignment:
         RAISE_SYNTAX_ERROR_INVALID_TARGET(STAR_TARGETS, a) }
     | (star_targets '=')* a=yield_expr '=' { RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, "assignment to yield expression not possible") }
     | a=star_expressions augassign (yield_expr | star_expressions) {
-        RAISE_SYNTAX_ERROR_KNOWN_LOCATION( 
+        RAISE_SYNTAX_ERROR_KNOWN_LOCATION(
             a,
             "'%s' is an illegal expression for augmented assignment",
             _PyPegen_get_expr_name(a)

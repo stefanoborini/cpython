@@ -326,7 +326,7 @@ class AST_Tests(unittest.TestCase):
 
     def test_subscr(self):
         mod = ast.parse("x[3]")
-        self.assertEqual(mod.body[0].value.slice, ast.Constant(3))
+        self.assertEqual(mod.body[0].value.slice.value, 3)
         self.assertEqual(mod.body[0].value.keywords, [])
 
     def test_from_import(self):
