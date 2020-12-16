@@ -1377,22 +1377,22 @@ class ASTValidatorTests(unittest.TestCase):
         self.expr(attr, "must have Load context")
 
     def test_subscript(self):
-        sub = ast.Subscript(ast.Name("x", ast.Store()), ast.Num(3),
+        sub = ast.Subscript(ast.Name("x", ast.Store()), ast.Num(3), [],
                             ast.Load())
         self.expr(sub, "must have Load context")
         x = ast.Name("x", ast.Load())
-        sub = ast.Subscript(x, ast.Name("y", ast.Store()),
+        sub = ast.Subscript(x, ast.Name("y", ast.Store()), [],
                             ast.Load())
         self.expr(sub, "must have Load context")
         s = ast.Name("x", ast.Store())
         for args in (s, None, None), (None, s, None), (None, None, s):
             sl = ast.Slice(*args)
-            self.expr(ast.Subscript(x, sl, ast.Load()),
+            self.expr(ast.Subscript(x, sl, [], ast.Load()),
                       "must have Load context")
         sl = ast.Tuple([], ast.Load())
-        self.expr(ast.Subscript(x, sl, ast.Load()))
+        self.expr(ast.Subscript(x, sl, [], ast.Load()))
         sl = ast.Tuple([s], ast.Load())
-        self.expr(ast.Subscript(x, sl, ast.Load()), "must have Load context")
+        self.expr(ast.Subscript(x, sl, [], ast.Load()), "must have Load context")
 
     def test_starred(self):
         left = ast.List([ast.Starred(ast.Name("x", ast.Load()), ast.Store())],
@@ -2151,13 +2151,13 @@ eval_results = [
 ('Expression', ('Constant', (1, 0, 1, 2), 10, None)),
 ('Expression', ('Constant', (1, 0, 1, 8), 'string', None)),
 ('Expression', ('Attribute', (1, 0, 1, 3), ('Name', (1, 0, 1, 1), 'a', ('Load',)), 'b', ('Load',))),
-('Expression', ('Subscript', (1, 0, 1, 6), ('Name', (1, 0, 1, 1), 'a', ('Load',)), ('Slice', (1, 2, 1, 5), ('Name', (1, 2, 1, 3), 'b', ('Load',)), ('Name', (1, 4, 1, 5), 'c', ('Load',)), None), ('Load',))),
+('Expression', ('Subscript', (1, 0, 1, 6), ('Name', (1, 0, 1, 1), 'a', ('Load',)), ('Slice', (1, 2, 1, 5), ('Name', (1, 2, 1, 3), 'b', ('Load',)), ('Name', (1, 4, 1, 5), 'c', ('Load',)), None), [], ('Load',))),
 ('Expression', ('Name', (1, 0, 1, 1), 'v', ('Load',))),
 ('Expression', ('List', (1, 0, 1, 7), [('Constant', (1, 1, 1, 2), 1, None), ('Constant', (1, 3, 1, 4), 2, None), ('Constant', (1, 5, 1, 6), 3, None)], ('Load',))),
 ('Expression', ('List', (1, 0, 1, 2), [], ('Load',))),
 ('Expression', ('Tuple', (1, 0, 1, 5), [('Constant', (1, 0, 1, 1), 1, None), ('Constant', (1, 2, 1, 3), 2, None), ('Constant', (1, 4, 1, 5), 3, None)], ('Load',))),
 ('Expression', ('Tuple', (1, 0, 1, 7), [('Constant', (1, 1, 1, 2), 1, None), ('Constant', (1, 3, 1, 4), 2, None), ('Constant', (1, 5, 1, 6), 3, None)], ('Load',))),
 ('Expression', ('Tuple', (1, 0, 1, 2), [], ('Load',))),
-('Expression', ('Call', (1, 0, 1, 17), ('Attribute', (1, 0, 1, 7), ('Attribute', (1, 0, 1, 5), ('Attribute', (1, 0, 1, 3), ('Name', (1, 0, 1, 1), 'a', ('Load',)), 'b', ('Load',)), 'c', ('Load',)), 'd', ('Load',)), [('Subscript', (1, 8, 1, 16), ('Attribute', (1, 8, 1, 11), ('Name', (1, 8, 1, 9), 'a', ('Load',)), 'b', ('Load',)), ('Slice', (1, 12, 1, 15), ('Constant', (1, 12, 1, 13), 1, None), ('Constant', (1, 14, 1, 15), 2, None), None), ('Load',))], [])),
+('Expression', ('Call', (1, 0, 1, 17), ('Attribute', (1, 0, 1, 7), ('Attribute', (1, 0, 1, 5), ('Attribute', (1, 0, 1, 3), ('Name', (1, 0, 1, 1), 'a', ('Load',)), 'b', ('Load',)), 'c', ('Load',)), 'd', ('Load',)), [('Subscript', (1, 8, 1, 16), ('Attribute', (1, 8, 1, 11), ('Name', (1, 8, 1, 9), 'a', ('Load',)), 'b', ('Load',)), ('Slice', (1, 12, 1, 15), ('Constant', (1, 12, 1, 13), 1, None), ('Constant', (1, 14, 1, 15), 2, None), None), [], ('Load',))], [])),
 ]
 main()

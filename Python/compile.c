@@ -6512,4 +6512,3 @@ PyCode_Optimize(PyObject *code, PyObject* Py_UNUSED(consts),
     Py_INCREF(code);
     return code;
 }
-
