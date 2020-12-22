@@ -5326,7 +5326,9 @@ static int
 compiler_subscript(struct compiler *c, expr_ty e)
 {
     expr_context_ty ctx = e->v.Subscript.ctx;
+    asdl_keyword_seq *keywords = e->v.Subscript.keywords;
     int op = 0;
+    Py_ssize_t i, nkwelts;
 
     if (ctx == Load) {
         if (!check_subscripter(c, e->v.Subscript.value)) {
@@ -5337,15 +5339,47 @@ compiler_subscript(struct compiler *c, expr_ty e)
         }
     }
 
-    switch (ctx) {
-        case Load:    op = BINARY_SUBSCR; break;
-        case Store:   op = STORE_SUBSCR; break;
-        case Del:     op = DELETE_SUBSCR; break;
+    if (validate_keywords(c, keywords) == -1) {
+        return 0;
     }
-    assert(op);
-    VISIT(c, expr, e->v.Subscript.value);
-    VISIT(c, expr, e->v.Subscript.slice);
-    ADDOP(c, op);
+
+    nkwelts = asdl_seq_LEN(keywords);
+
+    if (nkwelts) {
+        PyObject *names;
+        VISIT_SEQ(c, keyword, keywords);
+        names = PyTuple_New(nkwelts);
+        if (names == NULL) {
+            return 0;
+        }
+        for (i = 0; i < nkwelts; i++) {
+            keyword_ty kw = asdl_seq_GET(keywords, i);
+            Py_INCREF(kw->arg);
+            PyTuple_SET_ITEM(names, i, kw->arg);
+        }
+        VISIT(c, expr, e->v.Subscript.value);
+        VISIT(c, expr, e->v.Subscript.slice);
+        ADDOP_LOAD_CONST_NEW(c, names);
+
+        switch (ctx) {
+            case Load:  op = BINARY_SUBSCR_KW; break;
+            case Store: op = STORE_SUBSCR_KW; break;
+            case Del:   op = DELETE_SUBSCR_KW; break;
+        }
+        assert(op);
+        ADDOP_I(c, op, 1 + nkwelts);
+    } else {
+        switch (ctx) {
+            case Load:    op = BINARY_SUBSCR; break;
+            case Store:   op = STORE_SUBSCR; break;
+            case Del:     op = DELETE_SUBSCR; break;
+        }
+        assert(op);
+        VISIT(c, expr, e->v.Subscript.value);
+        VISIT(c, expr, e->v.Subscript.slice);
+        ADDOP(c, op);
+    }
+
     return 1;
 }
 
