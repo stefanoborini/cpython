@@ -1152,6 +1152,11 @@ stack_effect(int opcode, int oparg, int jump)
         case DICT_MERGE:
         case DICT_UPDATE:
             return -1;
+        case BINARY_SUBSCR_KW:
+        case STORE_SUBSCR_KW:
+        case DELETE_SUBSCR_KW:
+            return -oparg-1;
+
         default:
             return PY_INVALID_STACK_EFFECT;
     }
@@ -5347,6 +5352,8 @@ compiler_subscript(struct compiler *c, expr_ty e)
 
     if (nkwelts) {
         PyObject *names;
+        VISIT(c, expr, e->v.Subscript.value);
+        VISIT(c, expr, e->v.Subscript.slice);
         VISIT_SEQ(c, keyword, keywords);
         names = PyTuple_New(nkwelts);
         if (names == NULL) {
@@ -5357,8 +5364,6 @@ compiler_subscript(struct compiler *c, expr_ty e)
             Py_INCREF(kw->arg);
             PyTuple_SET_ITEM(names, i, kw->arg);
         }
-        VISIT(c, expr, e->v.Subscript.value);
-        VISIT(c, expr, e->v.Subscript.slice);
         ADDOP_LOAD_CONST_NEW(c, names);
 
         switch (ctx) {
@@ -5367,6 +5372,7 @@ compiler_subscript(struct compiler *c, expr_ty e)
             case Del:   op = DELETE_SUBSCR_KW; break;
         }
         assert(op);
+        // add one for the index argument
         ADDOP_I(c, op, 1 + nkwelts);
     } else {
         switch (ctx) {
