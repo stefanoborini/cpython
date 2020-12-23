@@ -1153,10 +1153,11 @@ stack_effect(int opcode, int oparg, int jump)
         case DICT_UPDATE:
             return -1;
         case BINARY_SUBSCR_KW:
-        case STORE_SUBSCR_KW:
-        case DELETE_SUBSCR_KW:
             return -oparg-1;
-
+        case DELETE_SUBSCR_KW:
+            return -oparg-2;
+        case STORE_SUBSCR_KW:
+            return -oparg-3;
         default:
             return PY_INVALID_STACK_EFFECT;
     }
