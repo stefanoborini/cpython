@@ -201,6 +201,13 @@ PyObject_GetItem(PyObject *o, PyObject *key)
     return type_error("'%.200s' object is not subscriptable", o);
 }
 
+PyObject *
+PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
+{
+    return PyObject_GetItem(o, key);
+}
+
+
 int
 PyObject_SetItem(PyObject *o, PyObject *key, PyObject *value)
 {

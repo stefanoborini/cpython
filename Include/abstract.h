@@ -610,6 +610,11 @@ PyAPI_FUNC(PyObject *) PySequence_Repeat(PyObject *o, Py_ssize_t count);
    This is the equivalent of the Python expression: o[i]. */
 PyAPI_FUNC(PyObject *) PySequence_GetItem(PyObject *o, Py_ssize_t i);
 
+/* Return element of 'o' corresponding to the object 'key', when passing keyword arguments.
+   Return NULL on failure.
+  This is the equivalent of the Python expression: o[key, arg=val] */
+PyAPI_FUNC(PyObject *) PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs);
+
 /* Return the slice of sequence object o between i1 and i2, or NULL on failure.
 
    This is the equivalent of the Python expression: o[i1:i2]. */

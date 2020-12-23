@@ -1869,8 +1869,32 @@ main_loop:
         }
 
         case TARGET(BINARY_SUBSCR_KW): {
-            /* TODO */
-            goto error;
+            PyObject *discard;
+            PyObject *names = POP();
+            assert(PyTuple_Check(names));
+            assert(PyTuple_GET_SIZE(names) == oparg - 1);
+            Py_ssize_t idx = oparg - 1;
+
+            while (idx--) {
+                discard = POP();
+                Py_DECREF(discard);
+            }
+
+            PyObject *sub = POP();
+            PyObject *container = TOP();
+
+            PyObject *res = PyObject_GetItemWithKeywords(container, sub, NULL);
+
+            Py_DECREF(names);
+            Py_DECREF(container);
+            Py_DECREF(sub);
+
+            SET_TOP(res);
+
+            if (res == NULL) {
+                goto error;
+            }
+            DISPATCH();
         }
 
         case TARGET(BINARY_LSHIFT): {
