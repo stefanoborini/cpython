@@ -316,6 +316,12 @@ PyAPI_FUNC(int) PyObject_DelItemString(PyObject *o, const char *key);
    This is the equivalent of the Python statement: del o[key]. */
 PyAPI_FUNC(int) PyObject_DelItem(PyObject *o, PyObject *key);
 
+/* Delete the mapping for the object 'key' from the object 'o' with keyword arguments.
+   Returns -1 on failure.
+
+   This is the equivalent of the Python statement: del o[key, k=x]. */
+PyAPI_FUNC(int) PyObject_DelItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs);
+
 
 /* === New Buffer API ============================================ */
 

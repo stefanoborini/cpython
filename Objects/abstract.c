@@ -279,6 +279,12 @@ PyObject_DelItem(PyObject *o, PyObject *key)
 }
 
 int
+PyObject_DelItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
+{
+    return PyObject_DelItem(o, key);
+}
+
+int
 PyObject_DelItemString(PyObject *o, const char *key)
 {
     PyObject *okey;
