@@ -241,6 +241,12 @@ PyObject_SetItem(PyObject *o, PyObject *key, PyObject *value)
 }
 
 int
+PyObject_SetItemWithKeywords(PyObject *o, PyObject *key, PyObject *value, PyObject *kwargs)
+{
+    return PyObject_SetItem(o, key, value);
+}
+
+int
 PyObject_DelItem(PyObject *o, PyObject *key)
 {
     PyMappingMethods *m;

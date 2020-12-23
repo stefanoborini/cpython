@@ -2161,8 +2161,29 @@ main_loop:
         }
 
         case TARGET(STORE_SUBSCR_KW): {
-            /* TODO */
-            goto error;
+            /* container[sub, k=...] = v */
+            PyObject *discard;
+            PyObject *names = POP();
+            assert(PyTuple_Check(names));
+            assert(PyTuple_GET_SIZE(names) == oparg - 1);
+            Py_ssize_t idx = oparg - 1;
+
+            while (idx--) {
+                discard = POP();
+                Py_DECREF(discard);
+            }
+
+            PyObject *sub = POP();
+            PyObject *container = POP();
+            PyObject *v = POP();
+            int err;
+            err = PyObject_SetItemWithKeywords(container, sub, v, NULL);
+            Py_DECREF(v);
+            Py_DECREF(container);
+            Py_DECREF(sub);
+            if (err != 0)
+                goto error;
+            DISPATCH();
         }
 
         case TARGET(DELETE_SUBSCR): {

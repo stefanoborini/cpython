@@ -296,6 +296,14 @@ PyAPI_FUNC(PyObject *) PyObject_GetItem(PyObject *o, PyObject *key);
    This is the equivalent of the Python statement: o[key]=v. */
 PyAPI_FUNC(int) PyObject_SetItem(PyObject *o, PyObject *key, PyObject *v);
 
+/* Map the object 'key' to the value 'v' into 'o', with keyword args.
+
+   Raise an exception and return -1 on failure; return 0 on success.
+
+   This is the equivalent of the Python statement: o[key, k=x]=v. */
+PyAPI_FUNC(int) PyObject_SetItemWithKeywords(PyObject *o, PyObject *key, PyObject *v,
+                                             PyObject *kwargs);
+
 /* Remove the mapping for the string 'key' from the object 'o'.
    Returns -1 on failure.
 
