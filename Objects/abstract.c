@@ -314,7 +314,22 @@ PyObject_DelItem(PyObject *o, PyObject *key)
 int
 PyObject_DelItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
 {
-    return PyObject_DelItem(o, key);
+    PyMappingMethods *m;
+
+    if (kwargs == NULL) {
+        return PyObject_DelItem(o, key);
+    }
+
+    if (o == NULL || key == NULL) {
+        null_error();
+        return -1;
+    }
+    m = Py_TYPE(o)->tp_as_mapping;
+    if (m && m->mp_ass_subscript_kw)
+        return m->mp_ass_subscript_kw(o, key, NULL, kwargs);
+    else {
+        return PyObject_DelItem(o, key);
+    }
 }
 
 int

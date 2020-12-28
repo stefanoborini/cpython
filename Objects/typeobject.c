@@ -6625,6 +6625,9 @@ slot_mp_ass_subscript(PyObject *self, PyObject *key, PyObject *value)
 static int
 slot_mp_ass_subscript_kw(PyObject *self, PyObject *key, PyObject *value, PyObject *kwds) {
     PyObject *meth;
+    int unbound;
+    PyObject *args;
+    PyObject *res;
 
     if (kwds == NULL) {
         return slot_mp_ass_subscript(self, key, value);
@@ -6633,7 +6636,6 @@ slot_mp_ass_subscript_kw(PyObject *self, PyObject *key, PyObject *value, PyObjec
     PyThreadState *tstate = _PyThreadState_GET();
     _Py_IDENTIFIER(__setitem__);
     _Py_IDENTIFIER(__delitem__);
-    int unbound;
 
     if (value == NULL) {
         meth = lookup_method(self, &PyId___delitem__, &unbound);
@@ -6641,13 +6643,17 @@ slot_mp_ass_subscript_kw(PyObject *self, PyObject *key, PyObject *value, PyObjec
     else {
         meth = lookup_method(self, &PyId___setitem__, &unbound);
     }
+
     if (meth == NULL) {
         return -1;
     }
 
-    PyObject *tpl = PyTuple_Pack(1, key);
-    PyObject *args = PyTuple_Pack(2, tpl, value);
-    PyObject *res;
+    if (value == NULL) {
+        args = PyTuple_Pack(1, key);
+    }
+    else {
+        args = PyTuple_Pack(2, key, value);
+    }
 
     if (unbound) {
         res = _PyObject_Call_Prepend(tstate, meth, self, args, kwds);
@@ -6657,7 +6663,6 @@ slot_mp_ass_subscript_kw(PyObject *self, PyObject *key, PyObject *value, PyObjec
     }
 
     Py_DECREF(args);
-    Py_DECREF(tpl);
     Py_DECREF(meth);
     if (res == NULL) return -1;
     Py_DECREF(res);
