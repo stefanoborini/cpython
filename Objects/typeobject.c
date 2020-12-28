@@ -5345,6 +5345,7 @@ inherit_slots(PyTypeObject *type, PyTypeObject *base)
         COPYMAP(mp_length);
         COPYMAP(mp_subscript);
         COPYMAP(mp_ass_subscript);
+        COPYMAP(mp_subscript_kw);
     }
 
     if (type->tp_as_buffer != NULL && base->tp_as_buffer != NULL) {
@@ -6150,6 +6151,15 @@ wrap_call(PyObject *self, PyObject *args, void *wrapped, PyObject *kwds)
 }
 
 static PyObject *
+wrap_subscript_kw(PyObject *self, PyObject *args, void *wrapped, PyObject *kwds)
+{
+    ternaryfunc func = (ternaryfunc)wrapped;
+
+    PyObject *ret = (*func)(self, args, kwds);
+    return ret;
+}
+
+static PyObject *
 wrap_del(PyObject *self, PyObject *args, void *wrapped)
 {
     destructor func = (destructor)wrapped;
@@ -6562,6 +6572,37 @@ slot_sq_contains(PyObject *self, PyObject *value)
 #define slot_mp_length slot_sq_length
 
 SLOT1(slot_mp_subscript, "__getitem__", PyObject *)
+
+static PyObject *
+slot_mp_subscript_kw(PyObject *self, PyObject *args, PyObject *kwds) {
+    if (kwds == NULL) {
+        return slot_mp_subscript(self, args);
+    }
+    PyThreadState *tstate = _PyThreadState_GET();
+    _Py_IDENTIFIER(__getitem__);
+    int unbound;
+
+    PyObject *meth = lookup_method(self, &PyId___getitem__, &unbound);
+    if (meth == NULL) {
+        return NULL;
+    }
+
+    PyObject *tpl = PyTuple_Pack(1, args);
+    PyObject_Print(tpl, stdout, 0);
+    printf("\n");
+
+    PyObject *res;
+    if (unbound) {
+        res = _PyObject_Call_Prepend(tstate, meth, self, tpl, kwds);
+    }
+    else {
+        res = _PyObject_Call(tstate, meth, tpl, kwds);
+    }
+
+    Py_DECREF(tpl);
+    Py_DECREF(meth);
+    return res;
+}
 
 static int
 slot_mp_ass_subscript(PyObject *self, PyObject *key, PyObject *value)
@@ -7173,8 +7214,10 @@ typedef struct wrapperbase slotdef;
 #undef FLSLOT
 #undef AMSLOT
 #undef ETSLOT
+#undef ETFLSLOT
 #undef SQSLOT
 #undef MPSLOT
+#undef MPFLSLOT
 #undef NBSLOT
 #undef UNSLOT
 #undef IBSLOT
@@ -7190,12 +7233,17 @@ typedef struct wrapperbase slotdef;
 #define ETSLOT(NAME, SLOT, FUNCTION, WRAPPER, DOC) \
     {NAME, offsetof(PyHeapTypeObject, SLOT), (void *)(FUNCTION), WRAPPER, \
      PyDoc_STR(DOC)}
+#define ETFLSLOT(NAME, SLOT, FUNCTION, WRAPPER, DOC, FLAGS) \
+    {NAME, offsetof(PyHeapTypeObject, SLOT), (void *)(FUNCTION), WRAPPER, \
+     PyDoc_STR(DOC), FLAGS}
 #define AMSLOT(NAME, SLOT, FUNCTION, WRAPPER, DOC) \
     ETSLOT(NAME, as_async.SLOT, FUNCTION, WRAPPER, DOC)
 #define SQSLOT(NAME, SLOT, FUNCTION, WRAPPER, DOC) \
     ETSLOT(NAME, as_sequence.SLOT, FUNCTION, WRAPPER, DOC)
 #define MPSLOT(NAME, SLOT, FUNCTION, WRAPPER, DOC) \
     ETSLOT(NAME, as_mapping.SLOT, FUNCTION, WRAPPER, DOC)
+#define MPFLSLOT(NAME, SLOT, FUNCTION, WRAPPER, DOC, FLAGS) \
+    ETFLSLOT(NAME, as_mapping.SLOT, FUNCTION, WRAPPER, DOC, FLAGS)
 #define NBSLOT(NAME, SLOT, FUNCTION, WRAPPER, DOC) \
     ETSLOT(NAME, as_number.SLOT, FUNCTION, WRAPPER, DOC)
 #define UNSLOT(NAME, SLOT, FUNCTION, WRAPPER, DOC) \
@@ -7363,15 +7411,16 @@ static slotdef slotdefs[] = {
            wrap_binaryfunc, "@="),
     MPSLOT("__len__", mp_length, slot_mp_length, wrap_lenfunc,
            "__len__($self, /)\n--\n\nReturn len(self)."),
-    MPSLOT("__getitem__", mp_subscript, slot_mp_subscript,
-           wrap_binaryfunc,
-           "__getitem__($self, key, /)\n--\n\nReturn self[key]."),
     MPSLOT("__setitem__", mp_ass_subscript, slot_mp_ass_subscript,
            wrap_objobjargproc,
            "__setitem__($self, key, value, /)\n--\n\nSet self[key] to value."),
     MPSLOT("__delitem__", mp_ass_subscript, slot_mp_ass_subscript,
            wrap_delitem,
            "__delitem__($self, key, /)\n--\n\nDelete self[key]."),
+    MPFLSLOT("__getitem__", mp_subscript_kw, slot_mp_subscript_kw,
+            (wrapperfunc)(void(*)(void))wrap_subscript_kw,
+           "__getitem__($self, key, **kwargs)\n--\n\nReturn self[key, **kwargs].",
+           PyWrapperFlag_KEYWORDS),
 
     SQSLOT("__len__", sq_length, slot_sq_length, wrap_lenfunc,
            "__len__($self, /)\n--\n\nReturn len(self)."),

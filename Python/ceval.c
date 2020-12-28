@@ -1869,25 +1869,44 @@ main_loop:
         }
 
         case TARGET(BINARY_SUBSCR_KW): {
-            PyObject *discard;
-            PyObject *names = POP();
-            assert(PyTuple_Check(names));
-            assert(PyTuple_GET_SIZE(names) == oparg - 1);
-            Py_ssize_t idx = oparg - 1;
+            int idx;
+            PyObject *kwnames = POP();
+            assert(PyTuple_Check(kwnames));
 
+            Py_ssize_t nkwargs = PyTuple_GET_SIZE(kwnames);
+            assert(PyTuple_GET_SIZE(kwnames) == oparg - 1);
+
+            PyObject *kwargs = _PyDict_NewPresized((Py_ssize_t)nkwargs);
+            if (kwargs == NULL)
+                goto error;
+
+            // Ensure dict is constructed in the correct order.
+            for (idx = 0; idx < nkwargs; idx++) {
+                int err;
+                PyObject *key = PyTuple_GET_ITEM(kwnames, idx);
+                PyObject *value = PEEK(nkwargs-idx);
+                err = PyDict_SetItem(kwargs, key, value);
+                if (err != 0) {
+                    Py_DECREF(kwargs);
+                    // FIXME: probably leaking some memory here.
+                    goto error;
+                }
+            }
+
+            idx = nkwargs;
             while (idx--) {
-                discard = POP();
-                Py_DECREF(discard);
+                Py_DECREF(POP());
             }
 
             PyObject *sub = POP();
             PyObject *container = TOP();
 
-            PyObject *res = PyObject_GetItemWithKeywords(container, sub, NULL);
+            PyObject *res = PyObject_GetItemWithKeywords(container, sub, kwargs);
 
-            Py_DECREF(names);
+            Py_DECREF(kwnames);
             Py_DECREF(container);
             Py_DECREF(sub);
+            Py_DECREF(kwargs);
 
             SET_TOP(res);
 
@@ -2163,9 +2182,9 @@ main_loop:
         case TARGET(STORE_SUBSCR_KW): {
             /* container[sub, k=...] = v */
             PyObject *discard;
-            PyObject *names = POP();
-            assert(PyTuple_Check(names));
-            assert(PyTuple_GET_SIZE(names) == oparg - 1);
+            PyObject *kwnames = POP();
+            assert(PyTuple_Check(kwnames));
+            assert(PyTuple_GET_SIZE(kwnames) == oparg - 1);
             Py_ssize_t idx = oparg - 1;
 
             while (idx--) {
@@ -2203,9 +2222,9 @@ main_loop:
         case TARGET(DELETE_SUBSCR_KW): {
             /* del container[sub, k=v] */
             PyObject *discard;
-            PyObject *names = POP();
-            assert(PyTuple_Check(names));
-            assert(PyTuple_GET_SIZE(names) == oparg - 1);
+            PyObject *kwnames = POP();
+            assert(PyTuple_Check(kwnames));
+            assert(PyTuple_GET_SIZE(kwnames) == oparg - 1);
             Py_ssize_t idx = oparg - 1;
 
             while (idx--) {

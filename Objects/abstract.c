@@ -204,7 +204,25 @@ PyObject_GetItem(PyObject *o, PyObject *key)
 PyObject *
 PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
 {
-    return PyObject_GetItem(o, key);
+    PyMappingMethods *m;
+
+    if (kwargs == NULL) {
+        return PyObject_GetItem(o, key);
+    }
+
+    if (o == NULL || key == NULL) {
+        return null_error();
+    }
+
+    m = Py_TYPE(o)->tp_as_mapping;
+    if (m && m->mp_subscript_kw) {
+        PyObject *item = m->mp_subscript_kw(o, key, kwargs);
+        assert((item != NULL) ^ (PyErr_Occurred() != NULL));
+        return item;
+    }
+
+    return type_error("'%.200s' object is not subscriptable", o);
+
 }
 
 

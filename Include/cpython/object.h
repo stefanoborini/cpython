@@ -165,6 +165,7 @@ typedef struct {
     lenfunc mp_length;
     binaryfunc mp_subscript;
     objobjargproc mp_ass_subscript;
+    ternaryfunc mp_subscript_kw;
 } PyMappingMethods;
 
 typedef PySendResult (*sendfunc)(PyObject *iter, PyObject *value, PyObject **result);
