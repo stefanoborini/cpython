@@ -261,7 +261,22 @@ PyObject_SetItem(PyObject *o, PyObject *key, PyObject *value)
 int
 PyObject_SetItemWithKeywords(PyObject *o, PyObject *key, PyObject *value, PyObject *kwargs)
 {
-    return PyObject_SetItem(o, key, value);
+    PyMappingMethods *m;
+
+    if (kwargs == NULL) {
+        return PyObject_SetItem(o, key, value);
+    }
+
+    if (o == NULL || key == NULL || value == NULL) {
+        null_error();
+        return -1;
+    }
+    m = Py_TYPE(o)->tp_as_mapping;
+    if (m && m->mp_ass_subscript_kw)
+        return m->mp_ass_subscript_kw(o, key, value, kwargs);
+    else {
+        return PyObject_SetItem(o, key, value);
+    }
 }
 
 int
@@ -2166,7 +2181,8 @@ int
 PyMapping_Check(PyObject *o)
 {
     return o && Py_TYPE(o)->tp_as_mapping &&
-        Py_TYPE(o)->tp_as_mapping->mp_subscript;
+        (Py_TYPE(o)->tp_as_mapping->mp_subscript ||
+         Py_TYPE(o)->tp_as_mapping->mp_subscript_kw);
 }
 
 Py_ssize_t

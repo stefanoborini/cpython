@@ -92,3 +92,5 @@
 /* New in 3.10 */
 #define Py_am_send 81
 #endif
+#define Py_mp_subscript_kw 82
+#define Py_mp_ass_subscript_kw 83

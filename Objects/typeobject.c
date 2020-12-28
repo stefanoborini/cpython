@@ -5346,6 +5346,7 @@ inherit_slots(PyTypeObject *type, PyTypeObject *base)
         COPYMAP(mp_subscript);
         COPYMAP(mp_ass_subscript);
         COPYMAP(mp_subscript_kw);
+        COPYMAP(mp_ass_subscript_kw);
     }
 
     if (type->tp_as_buffer != NULL && base->tp_as_buffer != NULL) {
@@ -6029,18 +6030,15 @@ wrap_objobjargproc(PyObject *self, PyObject *args, void *wrapped)
 }
 
 static PyObject *
-wrap_delitem(PyObject *self, PyObject *args, void *wrapped)
+wrap_setitem_kw(PyObject *self, PyObject *args, void *wrapped, PyObject *kwd)
 {
-    objobjargproc func = (objobjargproc)wrapped;
-    int res;
-    PyObject *key;
+    PyObject_Print(self, stdout, 0);
+    Py_RETURN_NONE;
+}
 
-    if (!check_num_args(args, 1))
-        return NULL;
-    key = PyTuple_GET_ITEM(args, 0);
-    res = (*func)(self, key, NULL);
-    if (res == -1 && PyErr_Occurred())
-        return NULL;
+static PyObject *
+wrap_delitem_kw(PyObject *self, PyObject *args, void *wrapped, PyObject *kwd)
+{
     Py_RETURN_NONE;
 }
 
@@ -6151,7 +6149,7 @@ wrap_call(PyObject *self, PyObject *args, void *wrapped, PyObject *kwds)
 }
 
 static PyObject *
-wrap_subscript_kw(PyObject *self, PyObject *args, void *wrapped, PyObject *kwds)
+wrap_getitem_kw(PyObject *self, PyObject *args, void *wrapped, PyObject *kwds)
 {
     ternaryfunc func = (ternaryfunc)wrapped;
 
@@ -6588,8 +6586,6 @@ slot_mp_subscript_kw(PyObject *self, PyObject *args, PyObject *kwds) {
     }
 
     PyObject *tpl = PyTuple_Pack(1, args);
-    PyObject_Print(tpl, stdout, 0);
-    printf("\n");
 
     PyObject *res;
     if (unbound) {
@@ -6625,6 +6621,49 @@ slot_mp_ass_subscript(PyObject *self, PyObject *key, PyObject *value)
     Py_DECREF(res);
     return 0;
 }
+
+static int
+slot_mp_ass_subscript_kw(PyObject *self, PyObject *key, PyObject *value, PyObject *kwds) {
+    PyObject *meth;
+
+    if (kwds == NULL) {
+        return slot_mp_ass_subscript(self, key, value);
+    }
+
+    PyThreadState *tstate = _PyThreadState_GET();
+    _Py_IDENTIFIER(__setitem__);
+    _Py_IDENTIFIER(__delitem__);
+    int unbound;
+
+    if (value == NULL) {
+        meth = lookup_method(self, &PyId___delitem__, &unbound);
+    }
+    else {
+        meth = lookup_method(self, &PyId___setitem__, &unbound);
+    }
+    if (meth == NULL) {
+        return -1;
+    }
+
+    PyObject *tpl = PyTuple_Pack(1, key);
+    PyObject *args = PyTuple_Pack(2, tpl, value);
+    PyObject *res;
+
+    if (unbound) {
+        res = _PyObject_Call_Prepend(tstate, meth, self, args, kwds);
+    }
+    else {
+        res = _PyObject_Call(tstate, meth, args, kwds);
+    }
+
+    Py_DECREF(args);
+    Py_DECREF(tpl);
+    Py_DECREF(meth);
+    if (res == NULL) return -1;
+    Py_DECREF(res);
+    return 0;
+}
+
 
 SLOT1BIN(slot_nb_add, nb_add, "__add__", "__radd__")
 SLOT1BIN(slot_nb_subtract, nb_subtract, "__sub__", "__rsub__")
@@ -7411,17 +7450,18 @@ static slotdef slotdefs[] = {
            wrap_binaryfunc, "@="),
     MPSLOT("__len__", mp_length, slot_mp_length, wrap_lenfunc,
            "__len__($self, /)\n--\n\nReturn len(self)."),
-    MPSLOT("__setitem__", mp_ass_subscript, slot_mp_ass_subscript,
-           wrap_objobjargproc,
-           "__setitem__($self, key, value, /)\n--\n\nSet self[key] to value."),
-    MPSLOT("__delitem__", mp_ass_subscript, slot_mp_ass_subscript,
-           wrap_delitem,
-           "__delitem__($self, key, /)\n--\n\nDelete self[key]."),
     MPFLSLOT("__getitem__", mp_subscript_kw, slot_mp_subscript_kw,
-            (wrapperfunc)(void(*)(void))wrap_subscript_kw,
-           "__getitem__($self, key, **kwargs)\n--\n\nReturn self[key, **kwargs].",
-           PyWrapperFlag_KEYWORDS),
-
+             (wrapperfunc)(void(*)(void))wrap_getitem_kw,
+             "__getitem__($self, key, **kwargs)\n--\n\nReturn self[key, **kwargs].",
+             PyWrapperFlag_KEYWORDS),
+    MPFLSLOT("__setitem__", mp_ass_subscript_kw, slot_mp_ass_subscript_kw,
+             (wrapperfunc)(void(*)(void))wrap_setitem_kw,
+             "__setitem__($self, key, value, /)\n--\n\nSet self[key, **kwargs] to value.",
+             PyWrapperFlag_KEYWORDS),
+    MPFLSLOT("__delitem__", mp_ass_subscript_kw, slot_mp_ass_subscript_kw,
+             (wrapperfunc)(void(*)(void))wrap_delitem_kw,
+             "__delitem__($self, key, /)\n--\n\nDelete self[key, **kwargs].",
+             PyWrapperFlag_KEYWORDS),
     SQSLOT("__len__", sq_length, slot_sq_length, wrap_lenfunc,
            "__len__($self, /)\n--\n\nReturn len(self)."),
     /* Heap types defining __add__/__mul__ have sq_concat/sq_repeat == NULL.

@@ -1872,9 +1872,8 @@ main_loop:
             int idx;
             PyObject *kwnames = POP();
             assert(PyTuple_Check(kwnames));
-
-            Py_ssize_t nkwargs = PyTuple_GET_SIZE(kwnames);
             assert(PyTuple_GET_SIZE(kwnames) == oparg - 1);
+            Py_ssize_t nkwargs = PyTuple_GET_SIZE(kwnames);
 
             PyObject *kwargs = _PyDict_NewPresized((Py_ssize_t)nkwargs);
             if (kwargs == NULL)
@@ -2181,25 +2180,46 @@ main_loop:
 
         case TARGET(STORE_SUBSCR_KW): {
             /* container[sub, k=...] = v */
-            PyObject *discard;
+            int idx;
             PyObject *kwnames = POP();
             assert(PyTuple_Check(kwnames));
             assert(PyTuple_GET_SIZE(kwnames) == oparg - 1);
-            Py_ssize_t idx = oparg - 1;
 
+            Py_ssize_t nkwargs = PyTuple_GET_SIZE(kwnames);
+
+            PyObject *kwargs = _PyDict_NewPresized((Py_ssize_t)nkwargs);
+            if (kwargs == NULL)
+                goto error;
+
+            // Ensure dict is constructed in the correct order.
+            for (idx = 0; idx < nkwargs; idx++) {
+                int err;
+                PyObject *key = PyTuple_GET_ITEM(kwnames, idx);
+                PyObject *value = PEEK(nkwargs-idx);
+                err = PyDict_SetItem(kwargs, key, value);
+                if (err != 0) {
+                    Py_DECREF(kwargs);
+                    // FIXME: probably leaking some memory here.
+                    goto error;
+                }
+            }
+
+
+            idx = nkwargs;
             while (idx--) {
-                discard = POP();
-                Py_DECREF(discard);
+                Py_DECREF(POP());
             }
 
             PyObject *sub = POP();
             PyObject *container = POP();
             PyObject *v = POP();
             int err;
-            err = PyObject_SetItemWithKeywords(container, sub, v, NULL);
+            err = PyObject_SetItemWithKeywords(container, sub, v, kwargs);
+
             Py_DECREF(v);
             Py_DECREF(container);
             Py_DECREF(sub);
+            Py_DECREF(kwargs);
             if (err != 0)
                 goto error;
             DISPATCH();
