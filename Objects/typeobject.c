@@ -6042,16 +6042,35 @@ wrap_objobjargproc(PyObject *self, PyObject *args, void *wrapped)
     Py_RETURN_NONE;
 }
 
+
+static PyObject *
+wrap_delitem(PyObject *self, PyObject *args, void *wrapped)
+{
+    objobjargproc func = (objobjargproc)wrapped;
+    int res;
+    PyObject *key;
+
+    if (!check_num_args(args, 1))
+        return NULL;
+    key = PyTuple_GET_ITEM(args, 0);
+    res = (*func)(self, key, NULL);
+    if (res == -1 && PyErr_Occurred())
+        return NULL;
+    Py_RETURN_NONE;
+}
+
+
 static PyObject *
 wrap_setitem_kw(PyObject *self, PyObject *args, void *wrapped, PyObject *kwd)
 {
-    PyObject_Print(self, stdout, 0);
+    // FIXME
     Py_RETURN_NONE;
 }
 
 static PyObject *
 wrap_delitem_kw(PyObject *self, PyObject *args, void *wrapped, PyObject *kwd)
 {
+    // FIXME
     Py_RETURN_NONE;
 }
 
@@ -6598,6 +6617,8 @@ slot_mp_subscript_kw(PyObject *self, PyObject *args, PyObject *kwds) {
         return NULL;
     }
 
+    // FIXME unsure if the packing of the arg to a one-tuple should be done here
+    // FIXME or in the caller.
     PyObject *tpl = PyTuple_Pack(1, args);
 
     PyObject *res;
@@ -6666,6 +6687,11 @@ slot_mp_ass_subscript_kw(PyObject *self, PyObject *key, PyObject *value, PyObjec
     }
     else {
         args = PyTuple_Pack(2, key, value);
+    }
+
+    if (args == NULL) {
+        Py_DECREF(meth);
+        return -1;
     }
 
     if (unbound) {
@@ -7468,6 +7494,15 @@ static slotdef slotdefs[] = {
            wrap_binaryfunc, "@="),
     MPSLOT("__len__", mp_length, slot_mp_length, wrap_lenfunc,
            "__len__($self, /)\n--\n\nReturn len(self)."),
+    MPSLOT("__getitem__", mp_subscript, slot_mp_subscript,
+            wrap_binaryfunc,
+            "__getitem__($self, key, /)\n--\n\nReturn self[key]"),
+    MPSLOT("__setitem__", mp_ass_subscript, slot_mp_ass_subscript,
+            wrap_objobjargproc,
+            "__setitem__($self, key, value, /)\n--\n\nSet self[key] to value."),
+    MPSLOT("__delitem__", mp_ass_subscript, slot_mp_ass_subscript,
+            wrap_delitem,
+            "__delitem__($self, key, /)\n--\n\nDelete self[key]."),
     MPFLSLOT("__getitem__", mp_subscript_kw, slot_mp_subscript_kw,
              (wrapperfunc)(void(*)(void))wrap_getitem_kw,
              "__getitem__($self, key, **kwargs)\n--\n\nReturn self[key, **kwargs].",
