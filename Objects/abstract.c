@@ -150,7 +150,7 @@ PyObject_LengthHint(PyObject *o, Py_ssize_t defaultvalue)
 PyObject *
 PyObject_GetItem(PyObject *o, PyObject *key)
 {
-    return PyObject_GetItemWithKeywords(o, key, NULL)
+    return PyObject_GetItemWithKeywords(o, key, NULL);
 }
 
 PyObject *
@@ -182,7 +182,7 @@ PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
     ms = Py_TYPE(o)->tp_as_sequence;
     if (ms && ms->sq_item) {
         if (kwargs != NULL) {
-            return type_error("sequence cannot handle keyword arguments");
+            return type_error("'%.200s' sequence cannot handle keyword arguments", o);
         }
         if (_PyIndex_Check(key)) {
             Py_ssize_t key_value;
@@ -243,7 +243,7 @@ PyObject_SetItemWithKeywords(PyObject *o, PyObject *key, PyObject *value, PyObje
 
     if (kwargs != NULL) {
         type_error("'%.200s' object does not accept subscript keyword arguments", o);
-        return -1
+        return -1;
     }
 
     if (m && m->mp_ass_subscript) {
@@ -292,7 +292,7 @@ PyObject_DelItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
 
     if (kwargs != NULL) {
         type_error("'%.200s' object does not accept subscript keyword arguments", o);
-        return -1
+        return -1;
     }
 
     if (m && m->mp_ass_subscript) {
