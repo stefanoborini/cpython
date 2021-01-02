@@ -150,6 +150,12 @@ PyObject_LengthHint(PyObject *o, Py_ssize_t defaultvalue)
 PyObject *
 PyObject_GetItem(PyObject *o, PyObject *key)
 {
+    return PyObject_GetItemWithKeywords(o, key, NULL)
+}
+
+PyObject *
+PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
+{
     PyMappingMethods *m;
     PySequenceMethods *ms;
 
@@ -158,7 +164,16 @@ PyObject_GetItem(PyObject *o, PyObject *key)
     }
 
     m = Py_TYPE(o)->tp_as_mapping;
+    if (m && m->mp_subscript_kw) {
+        PyObject *item = m->mp_subscript_kw(o, key, kwargs);
+        assert((item != NULL) ^ (PyErr_Occurred() != NULL));
+        return item;
+    }
+
     if (m && m->mp_subscript) {
+        if (kwargs != NULL) {
+            return type_error("'%.200s' object does not accept subscript keyword arguments", o);
+        }
         PyObject *item = m->mp_subscript(o, key);
         assert((item != NULL) ^ (PyErr_Occurred() != NULL));
         return item;
@@ -166,6 +181,9 @@ PyObject_GetItem(PyObject *o, PyObject *key)
 
     ms = Py_TYPE(o)->tp_as_sequence;
     if (ms && ms->sq_item) {
+        if (kwargs != NULL) {
+            return type_error("sequence cannot handle keyword arguments");
+        }
         if (_PyIndex_Check(key)) {
             Py_ssize_t key_value;
             key_value = PyNumber_AsSsize_t(key, PyExc_IndexError);
@@ -182,7 +200,7 @@ PyObject_GetItem(PyObject *o, PyObject *key)
     if (PyType_Check(o)) {
         PyObject *meth, *result;
         _Py_IDENTIFIER(__class_getitem__);
-
+        // FIXME need to handle passing keyword arguments to class getitem
         // Special case type[int], but disallow other types so str[int] fails
         if ((PyTypeObject*)o == &PyType_Type) {
             return Py_GenericAlias(o, key);
@@ -201,33 +219,15 @@ PyObject_GetItem(PyObject *o, PyObject *key)
     return type_error("'%.200s' object is not subscriptable", o);
 }
 
-PyObject *
-PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
-{
-    PyMappingMethods *m;
-
-    if (kwargs == NULL) {
-        return PyObject_GetItem(o, key);
-    }
-
-    if (o == NULL || key == NULL) {
-        return null_error();
-    }
-
-    m = Py_TYPE(o)->tp_as_mapping;
-    if (m && m->mp_subscript_kw) {
-        PyObject *item = m->mp_subscript_kw(o, key, kwargs);
-        assert((item != NULL) ^ (PyErr_Occurred() != NULL));
-        return item;
-    }
-
-    return type_error("'%.200s' object is not subscriptable", o);
-
-}
-
 
 int
 PyObject_SetItem(PyObject *o, PyObject *key, PyObject *value)
+{
+    return PyObject_SetItemWithKeywords(o, key, value, NULL);
+}
+
+int
+PyObject_SetItemWithKeywords(PyObject *o, PyObject *key, PyObject *value, PyObject *kwargs)
 {
     PyMappingMethods *m;
 
@@ -235,9 +235,20 @@ PyObject_SetItem(PyObject *o, PyObject *key, PyObject *value)
         null_error();
         return -1;
     }
+
     m = Py_TYPE(o)->tp_as_mapping;
-    if (m && m->mp_ass_subscript)
+
+    if (m && m->mp_ass_subscript_kw)
+        return m->mp_ass_subscript_kw(o, key, value, kwargs);
+
+    if (kwargs != NULL) {
+        type_error("'%.200s' object does not accept subscript keyword arguments", o);
+        return -1
+    }
+
+    if (m && m->mp_ass_subscript) {
         return m->mp_ass_subscript(o, key, value);
+    }
 
     if (Py_TYPE(o)->tp_as_sequence) {
         if (_PyIndex_Check(key)) {
@@ -259,28 +270,13 @@ PyObject_SetItem(PyObject *o, PyObject *key, PyObject *value)
 }
 
 int
-PyObject_SetItemWithKeywords(PyObject *o, PyObject *key, PyObject *value, PyObject *kwargs)
+PyObject_DelItem(PyObject *o, PyObject *key)
 {
-    PyMappingMethods *m;
-
-    if (kwargs == NULL) {
-        return PyObject_SetItem(o, key, value);
-    }
-
-    if (o == NULL || key == NULL || value == NULL) {
-        null_error();
-        return -1;
-    }
-    m = Py_TYPE(o)->tp_as_mapping;
-    if (m && m->mp_ass_subscript_kw)
-        return m->mp_ass_subscript_kw(o, key, value, kwargs);
-    else {
-        return PyObject_SetItem(o, key, value);
-    }
+    return PyObject_DelItemWithKeywords(o, key, (PyObject *)NULL);
 }
 
 int
-PyObject_DelItem(PyObject *o, PyObject *key)
+PyObject_DelItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
 {
     PyMappingMethods *m;
 
@@ -289,8 +285,19 @@ PyObject_DelItem(PyObject *o, PyObject *key)
         return -1;
     }
     m = Py_TYPE(o)->tp_as_mapping;
-    if (m && m->mp_ass_subscript)
+
+    if (m && m->mp_ass_subscript_kw) {
+        return m->mp_ass_subscript_kw(o, key, (PyObject *)NULL, kwargs);
+    }
+
+    if (kwargs != NULL) {
+        type_error("'%.200s' object does not accept subscript keyword arguments", o);
+        return -1
+    }
+
+    if (m && m->mp_ass_subscript) {
         return m->mp_ass_subscript(o, key, (PyObject*)NULL);
+    }
 
     if (Py_TYPE(o)->tp_as_sequence) {
         if (_PyIndex_Check(key)) {
@@ -309,27 +316,6 @@ PyObject_DelItem(PyObject *o, PyObject *key)
 
     type_error("'%.200s' object does not support item deletion", o);
     return -1;
-}
-
-int
-PyObject_DelItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
-{
-    PyMappingMethods *m;
-
-    if (kwargs == NULL) {
-        return PyObject_DelItem(o, key);
-    }
-
-    if (o == NULL || key == NULL) {
-        null_error();
-        return -1;
-    }
-    m = Py_TYPE(o)->tp_as_mapping;
-    if (m && m->mp_ass_subscript_kw)
-        return m->mp_ass_subscript_kw(o, key, NULL, kwargs);
-    else {
-        return PyObject_DelItem(o, key);
-    }
 }
 
 int
