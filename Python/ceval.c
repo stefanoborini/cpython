@@ -1870,7 +1870,7 @@ main_loop:
 
         case TARGET(BINARY_SUBSCR_KW): {
             int idx;
-            PyObject *kwnames = POP();
+            PyObject *kwnames = TOP();
             assert(PyTuple_Check(kwnames));
             assert(PyTuple_GET_SIZE(kwnames) == oparg - 1);
             Py_ssize_t nkwargs = PyTuple_GET_SIZE(kwnames);
@@ -1887,11 +1887,12 @@ main_loop:
                 err = PyDict_SetItem(kwargs, key, value);
                 if (err != 0) {
                     Py_DECREF(kwargs);
-                    // FIXME: probably leaking some memory here.
                     goto error;
                 }
             }
 
+            // Remove kwnames and the kwargs
+            Py_DECREF(POP());
             idx = nkwargs;
             while (idx--) {
                 Py_DECREF(POP());
@@ -1902,7 +1903,6 @@ main_loop:
 
             PyObject *res = PyObject_GetItemWithKeywords(container, sub, kwargs);
 
-            Py_DECREF(kwnames);
             Py_DECREF(container);
             Py_DECREF(sub);
             Py_DECREF(kwargs);
@@ -2181,7 +2181,7 @@ main_loop:
         case TARGET(STORE_SUBSCR_KW): {
             /* container[sub, k=...] = v */
             int idx;
-            PyObject *kwnames = POP();
+            PyObject *kwnames = TOP();
             assert(PyTuple_Check(kwnames));
             assert(PyTuple_GET_SIZE(kwnames) == oparg - 1);
 
@@ -2199,12 +2199,13 @@ main_loop:
                 err = PyDict_SetItem(kwargs, key, value);
                 if (err != 0) {
                     Py_DECREF(kwargs);
-                    // FIXME: probably leaking some memory here.
                     goto error;
                 }
             }
 
 
+            // Remove kwnames and args
+            Py_DECREF(POP());
             idx = nkwargs;
             while (idx--) {
                 Py_DECREF(POP());
@@ -2242,7 +2243,7 @@ main_loop:
         case TARGET(DELETE_SUBSCR_KW): {
             /* del container[sub, k=v] */
             int idx;
-            PyObject *kwnames = POP();
+            PyObject *kwnames = TOP();
             assert(PyTuple_Check(kwnames));
             assert(PyTuple_GET_SIZE(kwnames) == oparg - 1);
 
@@ -2260,11 +2261,12 @@ main_loop:
                 err = PyDict_SetItem(kwargs, key, value);
                 if (err != 0) {
                     Py_DECREF(kwargs);
-                    // FIXME: probably leaking some memory here.
                     goto error;
                 }
             }
 
+            // Remove kwnames and args
+            Py_DECREF(POP());
             idx = nkwargs;
             while (idx--) {
                 Py_DECREF(POP());
