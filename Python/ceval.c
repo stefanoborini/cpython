@@ -1883,7 +1883,7 @@ main_loop:
             for (idx = 0; idx < nkwargs; idx++) {
                 int err;
                 PyObject *key = PyTuple_GET_ITEM(kwnames, idx);
-                PyObject *value = PEEK(nkwargs-idx);
+                PyObject *value = PEEK(nkwargs-idx+1);
                 err = PyDict_SetItem(kwargs, key, value);
                 if (err != 0) {
                     Py_DECREF(kwargs);
@@ -2195,7 +2195,7 @@ main_loop:
             for (idx = 0; idx < nkwargs; idx++) {
                 int err;
                 PyObject *key = PyTuple_GET_ITEM(kwnames, idx);
-                PyObject *value = PEEK(nkwargs-idx);
+                PyObject *value = PEEK(nkwargs-idx+1);
                 err = PyDict_SetItem(kwargs, key, value);
                 if (err != 0) {
                     Py_DECREF(kwargs);
@@ -2257,7 +2257,7 @@ main_loop:
             for (idx = 0; idx < nkwargs; idx++) {
                 int err;
                 PyObject *key = PyTuple_GET_ITEM(kwnames, idx);
-                PyObject *value = PEEK(nkwargs-idx);
+                PyObject *value = PEEK(nkwargs-idx+1);
                 err = PyDict_SetItem(kwargs, key, value);
                 if (err != 0) {
                     Py_DECREF(kwargs);
