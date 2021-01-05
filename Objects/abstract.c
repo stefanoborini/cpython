@@ -210,7 +210,14 @@ PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
             return NULL;
         }
         if (meth) {
-            result = PyObject_CallOneArg(meth, key);
+            PyObject *tpl = PyTuple_Pack(1, key);
+            if (tpl == NULL) {
+                Py_DECREF(meth);
+                return NULL;
+            }
+
+            result = PyObject_Call(meth, tpl, kwargs);
+            Py_DECREF(tpl);
             Py_DECREF(meth);
             return result;
         }
