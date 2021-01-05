@@ -6620,6 +6620,10 @@ slot_mp_subscript_kw(PyObject *self, PyObject *args, PyObject *kwds) {
     // FIXME unsure if the packing of the arg to a one-tuple should be done here
     // FIXME or in the caller.
     PyObject *tpl = PyTuple_Pack(1, args);
+    if (tpl == NULL) {
+        Py_DECREF(meth);
+        return NULL;
+    }
 
     PyObject *res;
     if (unbound) {
