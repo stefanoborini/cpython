@@ -181,6 +181,21 @@ class DictTest(unittest.TestCase):
         x.fail = True
         self.assertRaises(Exc, d.__getitem__, x)
 
+        self.assertRaises(TypeError, lambda: d['c', k=3])
+        self.assertRaises(TypeError, lambda: d[k=3])
+
+        with self.assertRaises(TypeError):
+            d['c', k=3] = 5
+
+        with self.assertRaises(TypeError):
+            d[k=3] = 5
+
+        with self.assertRaises(TypeError):
+            del d['c', k=3]
+
+        with self.assertRaises(TypeError):
+            del d[k=3]
+
     def test_clear(self):
         d = {1:1, 2:2, 3:3}
         d.clear()

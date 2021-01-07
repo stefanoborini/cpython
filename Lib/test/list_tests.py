@@ -37,11 +37,19 @@ class CommonTest(seq_tests.CommonTest):
         with self.assertRaisesRegex(TypeError, msg):
             a['a']
 
+        msg = "does not accept subscript keyword arguments"
+        with self.assertRaisesRegex(TypeError, msg):
+            a[1, k=3]
+
     def test_setitem_error(self):
         a = []
         msg = "list indices must be integers or slices"
         with self.assertRaisesRegex(TypeError, msg):
             a['a'] = "python"
+
+        msg = "does not accept subscript keyword arguments"
+        with self.assertRaisesRegex(TypeError, msg):
+            a[1, k=3] = "python"
 
     def test_repr(self):
         l0 = []
@@ -145,6 +153,11 @@ class CommonTest(seq_tests.CommonTest):
         self.assertRaises(IndexError, a.__delitem__, 0)
 
         self.assertRaises(TypeError, a.__delitem__)
+
+        a = self.type2test([0, 1])
+        msg = "does not accept subscript keyword arguments"
+        with self.assertRaisesRegex(TypeError, msg):
+            del a[0, k=3]
 
     def test_setslice(self):
         l = [0, 1]
