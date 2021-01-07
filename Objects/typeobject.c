@@ -6063,14 +6063,31 @@ wrap_delitem(PyObject *self, PyObject *args, void *wrapped)
 static PyObject *
 wrap_setitem_kw(PyObject *self, PyObject *args, void *wrapped, PyObject *kwd)
 {
-    // FIXME
+    objobjargkwargproc func = (objobjargkwargproc)wrapped;
+    int res;
+    PyObject *key, *value;
+
+    if (!PyArg_UnpackTuple(args, "", 2, 2, &key, &value))
+        return NULL;
+    res = (*func)(self, key, value, kwd);
+    if (res == -1 && PyErr_Occurred())
+        return NULL;
     Py_RETURN_NONE;
 }
 
 static PyObject *
 wrap_delitem_kw(PyObject *self, PyObject *args, void *wrapped, PyObject *kwd)
 {
-    // FIXME
+    objobjargkwargproc func = (objobjargkwargproc)wrapped;
+    int res;
+    PyObject *key;
+
+    if (!check_num_args(args, 1))
+        return NULL;
+    key = PyTuple_GET_ITEM(args, 0);
+    res = (*func)(self, key, NULL, kwd);
+    if (res == -1 && PyErr_Occurred())
+        return NULL;
     Py_RETURN_NONE;
 }
 
