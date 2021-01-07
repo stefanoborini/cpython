@@ -200,7 +200,6 @@ PyObject_GetItemWithKeywords(PyObject *o, PyObject *key, PyObject *kwargs)
     if (PyType_Check(o)) {
         PyObject *meth, *result;
         _Py_IDENTIFIER(__class_getitem__);
-        // FIXME need to handle passing keyword arguments to class getitem
         // Special case type[int], but disallow other types so str[int] fails
         if ((PyTypeObject*)o == &PyType_Type) {
             return Py_GenericAlias(o, key);
