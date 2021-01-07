@@ -325,9 +325,24 @@ class AST_Tests(unittest.TestCase):
         self.assertIsNone(slc.step)
 
     def test_subscr(self):
-        mod = ast.parse("x[3]")
-        self.assertEqual(mod.body[0].value.slice.value, 3)
-        self.assertEqual(mod.body[0].value.keywords, [])
+        mod_nokw = ast.parse("x[3, 4]")
+        mod_idx_kw = ast.parse("x[3, 4, k=5, y=6]")
+        mod_kwonly = ast.parse("x[k=5, y=6]")
+
+        for mod in mod_nokw, mod_idx_kw:
+            self.assertEqual(len(mod.body[0].value.slice.elts), 2)
+            self.assertEqual(mod.body[0].value.slice.elts[0].value, 3)
+            self.assertEqual(mod.body[0].value.slice.elts[1].value, 4)
+
+        self.assertEqual(mod_nokw.body[0].value.keywords, [])
+
+        for mod in mod_idx_kw, mod_kwonly:
+            self.assertEqual(mod.body[0].value.keywords[0].arg, "k")
+            self.assertEqual(mod.body[0].value.keywords[0].value.value, 5)
+            self.assertEqual(mod.body[0].value.keywords[1].arg, "y")
+            self.assertEqual(mod.body[0].value.keywords[1].value.value, 6)
+
+        self.assertEqual(len(mod_kwonly.body[0].value.slice.elts), 0)
 
     def test_from_import(self):
         im = ast.parse("from . import y").body[0]
