@@ -80,3 +80,5 @@
 {offsetof(PyAsyncMethods, am_anext), offsetof(PyTypeObject, tp_as_async)},
 {-1, offsetof(PyTypeObject, tp_finalize)},
 {offsetof(PyAsyncMethods, am_send), offsetof(PyTypeObject, tp_as_async)},
+{offsetof(PyMappingMethods, mp_subscript_kw), offsetof(PyTypeObject, tp_as_mapping)},
+{offsetof(PyMappingMethods, mp_ass_subscript_kw), offsetof(PyTypeObject, tp_as_mapping)},
