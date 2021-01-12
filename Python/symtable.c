@@ -1635,6 +1635,7 @@ symtable_visit_expr(struct symtable *st, expr_ty e)
     case Subscript_kind:
         VISIT(st, expr, e->v.Subscript.value);
         VISIT(st, expr, e->v.Subscript.slice);
+        VISIT_SEQ_WITH_NULL(st, keyword, e->v.Subscript.keywords);
         break;
     case Starred_kind:
         VISIT(st, expr, e->v.Starred.value);
