@@ -5331,8 +5331,6 @@ static int
 compiler_subscript(struct compiler *c, expr_ty e)
 {
     expr_context_ty ctx = e->v.Subscript.ctx;
-    expr_ty value = e->v.Subscript.value;
-    expr_ty slice = e->v.Subscript.slice;
     asdl_keyword_seq *keywords = e->v.Subscript.keywords;
     int op = 0;
     Py_ssize_t i, nkwelts, nseen;
@@ -5419,7 +5417,7 @@ compiler_subscript(struct compiler *c, expr_ty e)
     }
     assert(op);
     // add one for the index argument
-    ADDOP_I(c, op, 0);
+    ADDOP(c, op);
 
     return 1;
 

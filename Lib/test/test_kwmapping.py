@@ -61,19 +61,18 @@ class TestKwMapping(unittest.TestCase):
         k[kw1="hello", kw2="hi"] = 5
         self.assertEqual(results[-1], ((), 5, "hello", "hi"))
 
-        # FIXME segfaulting
-        # kws = {"kw1": "hello", "kw2": "hi"}
-        # k[1, 2, **kws] = 5
-        # self.assertEqual(results[-1], ((1, 2), "hello", "hi"))
-        #
-        #idx = (1, 2)
-        #self.assertEqual(
-        #    k[*idx, kw1="hello", kw2="hi"], ((1, 2), "hello", "hi"))
+        kws = {"kw1": "hello", "kw2": "hi"}
+        k[1, 2, **kws] = 5
+        self.assertEqual(results[-1], ((1, 2), 5, "hello", "hi"))
+
+        idx = (1, 2)
+        self.assertEqual(
+            k[*idx, kw1="hello", kw2="hi"], ((1, 2), "hello", "hi"))
 
         # FIXME check if this should give 1 or (1, ) in the pep
-        #idx = (1,)
-        #self.assertEqual(
-        #    k[*idx, kw1="hello", kw2="hi"], (1, "hello", "hi"))
+        idx = (1,)
+        self.assertEqual(
+            k[*idx, kw1="hello", kw2="hi"], (1, "hello", "hi"))
 
         # Delitem testing
         del k[1, kw1="hello", kw2="hi"]
@@ -88,19 +87,18 @@ class TestKwMapping(unittest.TestCase):
         del k[kw1="hello", kw2="hi"]
         self.assertEqual(results[-1], ((), "hello", "hi"))
 
-        # FIXME segfaulting
-        # kws = {"kw1": "hello", "kw2": "hi"}
-        # k[1, 2, **kws] = 5
-        # self.assertEqual(results[-1], ((1, 2), "hello", "hi"))
-        #
-        #idx = (1, 2)
-        #self.assertEqual(
-        #    k[*idx, kw1="hello", kw2="hi"], ((1, 2), "hello", "hi"))
+        kws = {"kw1": "hello", "kw2": "hi"}
+        k[1, 2, **kws] = 5
+        self.assertEqual(results[-1], ((1, 2), "hello", "hi"))
+
+        idx = (1, 2)
+        self.assertEqual(
+            k[*idx, kw1="hello", kw2="hi"], ((1, 2), "hello", "hi"))
 
         # FIXME check if this should give 1 or (1, ) in the pep
-        #idx = (1,)
-        #self.assertEqual(
-        #    k[*idx, kw1="hello", kw2="hi"], (1, "hello", "hi"))
+        idx = (1,)
+        self.assertEqual(
+            k[*idx, kw1="hello", kw2="hi"], (1, "hello", "hi"))
 
     def test_defaults(self):
         results = []

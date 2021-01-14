@@ -82,6 +82,9 @@ def_op('BINARY_FLOOR_DIVIDE', 26)
 def_op('BINARY_TRUE_DIVIDE', 27)
 def_op('INPLACE_FLOOR_DIVIDE', 28)
 def_op('INPLACE_TRUE_DIVIDE', 29)
+def_op('BINARY_SUBSCR_KW', 30)
+def_op('STORE_SUBSCR_KW', 31)
+def_op('DELETE_SUBSCR_KW', 32)
 
 def_op('WITH_EXCEPT_START', 49)
 def_op('GET_AITER', 50)
@@ -104,7 +107,6 @@ def_op('BINARY_OR', 66)
 def_op('INPLACE_POWER', 67)
 def_op('GET_ITER', 68)
 def_op('GET_YIELD_FROM_ITER', 69)
-
 def_op('PRINT_EXPR', 70)
 def_op('LOAD_BUILD_CLASS', 71)
 def_op('YIELD_FROM', 72)
@@ -213,9 +215,5 @@ def_op('LIST_EXTEND', 162)
 def_op('SET_UPDATE', 163)
 def_op('DICT_MERGE', 164)
 def_op('DICT_UPDATE', 165)
-
-def_op('BINARY_SUBSCR_KW', 166)
-def_op('STORE_SUBSCR_KW', 167)
-def_op('DELETE_SUBSCR_KW', 168)
 
 del def_op, name_op, jrel_op, jabs_op

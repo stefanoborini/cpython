@@ -30,6 +30,9 @@ extern "C" {
 #define BINARY_TRUE_DIVIDE       27
 #define INPLACE_FLOOR_DIVIDE     28
 #define INPLACE_TRUE_DIVIDE      29
+#define BINARY_SUBSCR_KW         30
+#define STORE_SUBSCR_KW          31
+#define DELETE_SUBSCR_KW         32
 #define WITH_EXCEPT_START        49
 #define GET_AITER                50
 #define GET_ANEXT                51
@@ -127,9 +130,6 @@ extern "C" {
 #define SET_UPDATE              163
 #define DICT_MERGE              164
 #define DICT_UPDATE             165
-#define BINARY_SUBSCR_KW        166
-#define STORE_SUBSCR_KW         167
-#define DELETE_SUBSCR_KW        168
 #ifdef NEED_OPCODE_JUMP_TABLES
 static uint32_t _PyOpcode_RelativeJump[8] = {
     0U,

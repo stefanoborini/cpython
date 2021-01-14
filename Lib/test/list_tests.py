@@ -37,8 +37,7 @@ class CommonTest(seq_tests.CommonTest):
         with self.assertRaisesRegex(TypeError, msg):
             a['a']
 
-        msg = "does not accept subscript keyword arguments"
-        with self.assertRaisesRegex(TypeError, msg):
+        with self.assertRaises(TypeError):
             a[1, k=3]
 
     def test_setitem_error(self):
@@ -47,8 +46,7 @@ class CommonTest(seq_tests.CommonTest):
         with self.assertRaisesRegex(TypeError, msg):
             a['a'] = "python"
 
-        msg = "does not accept subscript keyword arguments"
-        with self.assertRaisesRegex(TypeError, msg):
+        with self.assertRaises(TypeError):
             a[1, k=3] = "python"
 
     def test_repr(self):
@@ -155,8 +153,7 @@ class CommonTest(seq_tests.CommonTest):
         self.assertRaises(TypeError, a.__delitem__)
 
         a = self.type2test([0, 1])
-        msg = "does not accept subscript keyword arguments"
-        with self.assertRaisesRegex(TypeError, msg):
+        with self.assertRaises(TypeError):
             del a[0, k=3]
 
     def test_setslice(self):
