@@ -22,13 +22,13 @@ class TestKwMapping(unittest.TestCase):
             ((1, 2), "hello", "hi"))
 
         # FIXME segfaulting
-        # kws = {"kw1": "hello", "kw2": "hi"}
-        # self.assertEqual(
-        #    k[1, 2, **kws],
-        #    ((1, 2), "hello", "hi"))
-        #idx = (1, 2)
-        #self.assertEqual(
-        #    k[*idx, kw1="hello", kw2="hi"], ((1, 2), "hello", "hi"))
+        kws = {"kw1": "hello", "kw2": "hi"}
+        self.assertEqual(
+           k[1, 2, **kws],
+           ((1, 2), "hello", "hi"))
+        idx = (1, 2)
+        self.assertEqual(
+            k[*idx, kw1="hello", kw2="hi"], ((1, 2), "hello", "hi"))
 
         # FIXME check if this should give 1 or (1, ) in the pep
         #idx = (1,)

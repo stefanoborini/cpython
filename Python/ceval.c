@@ -1869,35 +1869,7 @@ main_loop:
         }
 
         case TARGET(BINARY_SUBSCR_KW): {
-            int idx;
-            PyObject *kwnames = TOP();
-            assert(PyTuple_Check(kwnames));
-            assert(PyTuple_GET_SIZE(kwnames) == oparg - 1);
-            Py_ssize_t nkwargs = PyTuple_GET_SIZE(kwnames);
-
-            PyObject *kwargs = _PyDict_NewPresized((Py_ssize_t)nkwargs);
-            if (kwargs == NULL)
-                goto error;
-
-            // Ensure dict is constructed in the correct order.
-            for (idx = 0; idx < nkwargs; idx++) {
-                int err;
-                PyObject *key = PyTuple_GET_ITEM(kwnames, idx);
-                PyObject *value = PEEK(nkwargs-idx+1);
-                err = PyDict_SetItem(kwargs, key, value);
-                if (err != 0) {
-                    Py_DECREF(kwargs);
-                    goto error;
-                }
-            }
-
-            // Remove kwnames and the kwargs
-            Py_DECREF(POP());
-            idx = nkwargs;
-            while (idx--) {
-                Py_DECREF(POP());
-            }
-
+            PyObject *kwargs = POP();
             PyObject *sub = POP();
             PyObject *container = TOP();
 
@@ -2180,40 +2152,11 @@ main_loop:
 
         case TARGET(STORE_SUBSCR_KW): {
             /* container[sub, k=...] = v */
-            int idx;
-            PyObject *kwnames = TOP();
-            assert(PyTuple_Check(kwnames));
-            assert(PyTuple_GET_SIZE(kwnames) == oparg - 1);
-
-            Py_ssize_t nkwargs = PyTuple_GET_SIZE(kwnames);
-
-            PyObject *kwargs = _PyDict_NewPresized((Py_ssize_t)nkwargs);
-            if (kwargs == NULL)
-                goto error;
-
-            // Ensure dict is constructed in the correct order.
-            for (idx = 0; idx < nkwargs; idx++) {
-                int err;
-                PyObject *key = PyTuple_GET_ITEM(kwnames, idx);
-                PyObject *value = PEEK(nkwargs-idx+1);
-                err = PyDict_SetItem(kwargs, key, value);
-                if (err != 0) {
-                    Py_DECREF(kwargs);
-                    goto error;
-                }
-            }
-
-
-            // Remove kwnames and args
-            Py_DECREF(POP());
-            idx = nkwargs;
-            while (idx--) {
-                Py_DECREF(POP());
-            }
-
+            PyObject *kwargs = POP();
             PyObject *sub = POP();
             PyObject *container = POP();
             PyObject *v = POP();
+
             int err;
             err = PyObject_SetItemWithKeywords(container, sub, v, kwargs);
 
@@ -2242,38 +2185,10 @@ main_loop:
 
         case TARGET(DELETE_SUBSCR_KW): {
             /* del container[sub, k=v] */
-            int idx;
-            PyObject *kwnames = TOP();
-            assert(PyTuple_Check(kwnames));
-            assert(PyTuple_GET_SIZE(kwnames) == oparg - 1);
-
-            Py_ssize_t nkwargs = PyTuple_GET_SIZE(kwnames);
-
-            PyObject *kwargs = _PyDict_NewPresized((Py_ssize_t)nkwargs);
-            if (kwargs == NULL)
-                goto error;
-
-            // Ensure dict is constructed in the correct order.
-            for (idx = 0; idx < nkwargs; idx++) {
-                int err;
-                PyObject *key = PyTuple_GET_ITEM(kwnames, idx);
-                PyObject *value = PEEK(nkwargs-idx+1);
-                err = PyDict_SetItem(kwargs, key, value);
-                if (err != 0) {
-                    Py_DECREF(kwargs);
-                    goto error;
-                }
-            }
-
-            // Remove kwnames and args
-            Py_DECREF(POP());
-            idx = nkwargs;
-            while (idx--) {
-                Py_DECREF(POP());
-            }
-
+            PyObject *kwargs = POP();
             PyObject *sub = POP();
             PyObject *container = POP();
+
             int err;
             err = PyObject_DelItemWithKeywords(container, sub, kwargs);
 
@@ -3267,7 +3182,6 @@ main_loop:
                 goto error;
             }
             Py_DECREF(update);
-            PREDICT(CALL_FUNCTION_EX);
             DISPATCH();
         }
 

@@ -1147,11 +1147,11 @@ stack_effect(int opcode, int oparg, int jump)
         case DICT_UPDATE:
             return -1;
         case BINARY_SUBSCR_KW:
-            return -oparg-1;
+            return -2;
         case DELETE_SUBSCR_KW:
-            return -oparg-2;
+            return -3;
         case STORE_SUBSCR_KW:
-            return -oparg-3;
+            return -4;
         default:
             return PY_INVALID_STACK_EFFECT;
     }
@@ -5331,50 +5331,26 @@ static int
 compiler_subscript(struct compiler *c, expr_ty e)
 {
     expr_context_ty ctx = e->v.Subscript.ctx;
+    expr_ty value = e->v.Subscript.value;
+    expr_ty slice = e->v.Subscript.slice;
     asdl_keyword_seq *keywords = e->v.Subscript.keywords;
     int op = 0;
-    Py_ssize_t i, nkwelts;
-
-    if (ctx == Load) {
-        if (!check_subscripter(c, e->v.Subscript.value)) {
-            return 0;
-        }
-        if (!check_index(c, e->v.Subscript.value, e->v.Subscript.slice)) {
-            return 0;
-        }
-    }
-
-    if (validate_keywords(c, keywords) == -1) {
-        return 0;
-    }
+    Py_ssize_t i, nkwelts, nseen;
 
     nkwelts = asdl_seq_LEN(keywords);
 
-    if (nkwelts) {
-        PyObject *names;
-        VISIT(c, expr, e->v.Subscript.value);
-        VISIT(c, expr, e->v.Subscript.slice);
-        VISIT_SEQ(c, keyword, keywords);
-        names = PyTuple_New(nkwelts);
-        if (names == NULL) {
-            return 0;
+    if (nkwelts == 0) {
+        // No keyword arguments
+        // Use the old strategy.
+        if (ctx == Load) {
+            if (!check_subscripter(c, e->v.Subscript.value)) {
+                return 0;
+            }
+            if (!check_index(c, e->v.Subscript.value, e->v.Subscript.slice)) {
+                return 0;
+            }
         }
-        for (i = 0; i < nkwelts; i++) {
-            keyword_ty kw = asdl_seq_GET(keywords, i);
-            Py_INCREF(kw->arg);
-            PyTuple_SET_ITEM(names, i, kw->arg);
-        }
-        ADDOP_LOAD_CONST_NEW(c, names);
 
-        switch (ctx) {
-            case Load:  op = BINARY_SUBSCR_KW; break;
-            case Store: op = STORE_SUBSCR_KW; break;
-            case Del:   op = DELETE_SUBSCR_KW; break;
-        }
-        assert(op);
-        // add one for the index argument
-        ADDOP_I(c, op, 1 + nkwelts);
-    } else {
         switch (ctx) {
             case Load:    op = BINARY_SUBSCR; break;
             case Store:   op = STORE_SUBSCR; break;
@@ -5384,9 +5360,69 @@ compiler_subscript(struct compiler *c, expr_ty e)
         VISIT(c, expr, e->v.Subscript.value);
         VISIT(c, expr, e->v.Subscript.slice);
         ADDOP(c, op);
+        return 1;
     }
 
+    if (validate_keywords(c, keywords) == -1) {
+        return 0;
+    }
+
+    VISIT(c, expr, e->v.Subscript.value);
+    VISIT(c, expr, e->v.Subscript.slice);
+
+    /* Has a new dict been pushed */
+    int have_dict = 0;
+
+    nseen = 0;  /* the number of keyword arguments on the stack following */
+    for (i = 0; i < nkwelts; i++) {
+        keyword_ty kw = asdl_seq_GET(keywords, i);
+        if (kw->arg == NULL) {
+            /* A keyword argument unpacking. */
+            if (nseen) {
+                if (!compiler_subkwargs(c, keywords, i - nseen, i)) {
+                    return 0;
+                }
+                if (have_dict) {
+                    ADDOP_I(c, DICT_MERGE, 1);
+                }
+                have_dict = 1;
+                nseen = 0;
+            }
+            if (!have_dict) {
+                ADDOP_I(c, BUILD_MAP, 0);
+                have_dict = 1;
+            }
+            VISIT(c, expr, kw->value);
+            ADDOP_I(c, DICT_MERGE, 1);
+        }
+        else {
+            nseen++;
+        }
+    }
+
+    if (nseen) {
+        /* Pack up any trailing keyword arguments. */
+        if (!compiler_subkwargs(c, keywords, nkwelts - nseen, nkwelts)) {
+            return 0;
+        }
+        if (have_dict) {
+            ADDOP_I(c, DICT_MERGE, 1);
+        }
+        have_dict = 1;
+    }
+    assert(have_dict);
+
+    switch (ctx) {
+        case Load:  op = BINARY_SUBSCR_KW; break;
+        case Store: op = STORE_SUBSCR_KW; break;
+        case Del:   op = DELETE_SUBSCR_KW; break;
+    }
+    assert(op);
+    // add one for the index argument
+    ADDOP_I(c, op, 0);
+
     return 1;
+
 }
 
 static int
